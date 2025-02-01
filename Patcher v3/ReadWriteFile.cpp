@@ -2,34 +2,13 @@
 #include "base64_decode.h"
 #include "md5.h"
 
-class WindowsException
-{
-public:
-	WindowsException( const std::wstring& message, DWORD errorCode ) : message( message ), errorCode( errorCode )
-	{}
-
-	std::wstring getMessage() const
-	{
-		return message;
-	}
-
-	DWORD getErrorCode() const
-	{
-		return errorCode;
-	}
-
-private:
-	std::wstring message;
-	DWORD errorCode;
-};
-
 ReadWrite::ReadWrite()
 {}
 
 ReadWrite::~ReadWrite()
 {}
 
-void ReadWrite::Apply( FileMapper *ToPatchFile, FileMapper *ToFinishFile, FileMapper *ToPatch )
+void ReadWrite::Apply( FileMapper *ToPatchFile, FileMapper *ToFinishFile, FileMapper *ToPatch, DWORD MD5Check )
 {
 	uint8_t b;
 	int64_t start, length;
@@ -37,107 +16,7 @@ void ReadWrite::Apply( FileMapper *ToPatchFile, FileMapper *ToFinishFile, FileMa
 	int readBufferSize = 4 * 1024 * 1024;
 	byte *TmpBuf;
 
-	//cursor = static_cast< char* >( ToPatch.GetView() );
-	fileSize = ToPatch->GetFileSize();
-	PatchData = ( char * )ToPatch->GetView();
 
-	/*byte *pData = ( byte * )ToPatch->GetView();
-
-	byte HashData[ 16 ];
-	char Hash[ 16 ];
-	CMd5 md5;
-	Md5_Init( &md5 );
-	Md5_Update( &md5, pData, fileSize );
-	Md5_Final( &md5, HashData );
-
-	int pos = 0;
-	for( int i = 0; i < 16; ++i )
-	{
-		pos += snprintf( Hash + pos, sizeof( Hash ) - pos, "%02x", HashData[ i ] );
-	}*/
-
-	
-	// Для начала проверим заголовок файла, а вдруг это не он
-	std::string header = ReadString( 9 );
-	if( header.compare( "FRSNCDLTA" ) != 0 )
-		throw WindowsException( L"Некорректный файл", 0 );
-
-	// Теперь проверим версию?
-	uint8_t version = ReadByte();
-	if( version != 0x01 )
-		throw WindowsException( L"Некорректный байт", 0 );
-
-	// Может я и ошибаюсь, но, возможно, это размер json строки что будет далее
-	uint8_t StrLength = ReadByte();
-
-	// Опять такой же байт. Пока оставлю так, потом посмотрим
-	version = ReadByte();
-	if( version != 0x01 )
-		throw WindowsException( L"Некорректный байт 2", 0 );
-
-	// Читаем json данные
-	std::string metadataStr = ReadString( StrLength );
-
-	//! Сделать опцию на проверку хэша
-	//! 1. Только входящих файлов
-	//! 2. Входящих и выходящих
-	//! 3. Только Assembly-CSharp.dll
-	
-	std::unordered_map<std::string, std::string> parsedJson = ParseJson( metadataStr );
-	
-	// Данные входящего файла
-	expectedFileHashAlgorithm = parsedJson[ "expectedFileHashAlgorithm" ];	// MD5
-	expectedFileHash = parsedJson[ "expectedFileHash" ];
-
-	// Данные выходящего файла
-	baseFileHashAlgorithm = parsedJson[ "baseFileHashAlgorithm" ];	// MD5
-	baseFileHash = parsedJson[ "baseFileHash" ];
-
-	if( lstrcmpiA( expectedFileHashAlgorithm.c_str(), "md5" ) == 0 )
-		auto baseFileHash_decode = to_hex( base64_decode( baseFileHash ) );
-
-	//auto expectedHash = base64_decode( ExpectedFileHash );
-
-//	char* ToPatchFileData = static_cast< char* >( ToPatchFile.GetView() );
-//	char* ToFinishFileData = static_cast< char* >( ToFinishFile.GetView() );
-//	std::vector<uint8_t> writeData;
-//	std::vector<uint8_t> bytes;
-	int RB = 0;	// Байты для чтения из файла с патчем
-
-	//! Переделать выделение памяти
-	//! Переделать while( *PatchData != 0 )
-	while( *PatchData != 0 )
-	{
-		b = ReadByte();
-		if( b == CopyCommand )
-		{
-			start = ( int64_t )Read<int64_t>();
-			length = ( int64_t )Read<int64_t>();
-
-			// Читаем данные из оригинального файла
-			TmpBuf = ( byte * )malloc( length );
-			ToPatchFile->ReadData( TmpBuf, start, length );
-			ToFinishFile->WriteData( TmpBuf, length );
-			free( TmpBuf );
-			TmpBuf = NULL;
-		}
-		else
-		if( b == DataCommand )
-		{
-			length = ( int64_t )Read<int64_t>();
-			soFar = 0;
-			while( soFar < length )
-			{
-				RB = min( static_cast< int64_t >( length - soFar ), static_cast< int64_t >( readBufferSize ) );
-				TmpBuf = ( byte * )malloc( RB );
-				ReadBytes( TmpBuf, RB );
-				ToFinishFile->WriteData( TmpBuf, length );
-				free( TmpBuf );
-				TmpBuf = NULL;
-				soFar += RB;
-			}			
-		}
-	}
 }
 
 template <typename T>
@@ -165,7 +44,7 @@ std::string ReadWrite::ReadString( size_t length )
 void ReadWrite::ReadBytes( byte *Data, size_t length )
 {
 	if( PatchData + length > PatchData + fileSize )
-		throw WindowsException( L"Смещение больше чем файл патча", GetLastError() );
+		throw std::runtime_error( "Смещение больше чем файл патча" );
 
 	memcpy( Data, PatchData, length );
 	PatchData += length;

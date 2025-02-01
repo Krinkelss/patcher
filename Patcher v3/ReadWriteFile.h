@@ -2,12 +2,18 @@
 #include <unordered_map>
 #include "FileMapper.h"
 
+#define MD5_OFF		0	// Выкл
+#define MD5_FULL	1	// Проверка всех файлов
+#define MD5_IN		2	// Проверка только входящих файлов
+#define MD5_ACS		3	// Проверить только Assembly-CSharp.dll
+
+
 class ReadWrite
 {
 public:
 	ReadWrite();
 	~ReadWrite();
-	void Apply( FileMapper *ToPatchFile, FileMapper *ToFinishFile, FileMapper *ToPatch );
+	void Apply( FileMapper *ToPatchFile, FileMapper *ToFinishFile, FileMapper *ToPatch, DWORD MD5Check = MD5_OFF );
 
 private:	
 	template <typename T>

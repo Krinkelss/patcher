@@ -18,6 +18,7 @@ private:
 	bool FileExists( wchar_t* fname );
 	bool FileReadOnly( wchar_t* fname );
 	DWORD fGetFileSize( wchar_t* filePath );
+	std::string ConvertUnicodeToAnsi( const std::wstring& unicodeString );
 
 private:
 	HANDLE hFile;
@@ -27,6 +28,7 @@ private:
 	//uint8_t* cursor;
 	PVOID pData;
 	UINT CurrentOffset = 0;
+	std::string FileName;
 
 private:
 	DWORD mappingAccess = PAGE_READONLY;

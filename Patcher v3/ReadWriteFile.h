@@ -22,6 +22,15 @@ private:
 	uint8_t DataCommand = 0x80;
 
 private:
+	// Данные входящего файла
+	std::string expectedFileHashAlgorithm;	// MD5 или другой алгоритм
+	std::string expectedFileHash;			// Строка в base64
+	
+	// Данные выходящего файла
+	std::string baseFileHashAlgorithm;	// MD5 или другой алгоритм
+	std::string baseFileHash;			// Строка в base64
+
+private:
 //	char* cursor;
 
 	PVOID ToFileData;

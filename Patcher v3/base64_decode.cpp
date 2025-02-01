@@ -54,3 +54,21 @@ std::string base64_decode( std::string const& encoded_string )
 
 	return ret;
 }
+
+std::string to_hex( const std::string &data )
+{
+	std::string hex_output;
+	const char hex_chars[] = "0123456789abcdef"; // Символы для шестнадцатеричного представления
+
+	for( unsigned char byte : data )
+	{
+		// Получаем старший и младший нибблы
+		char high_nibble = hex_chars[ ( byte >> 4 ) & 0x0F ];
+		char low_nibble = hex_chars[ byte & 0x0F ];
+
+		// Добавляем символы в результат
+		hex_output.push_back( high_nibble );
+		hex_output.push_back( low_nibble );
+	}
+	return hex_output;
+}

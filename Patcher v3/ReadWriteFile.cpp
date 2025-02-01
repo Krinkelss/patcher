@@ -1,4 +1,5 @@
 #include "ReadWriteFile.h"
+#include "base64_decode.h"
 #include "md5.h"
 
 class WindowsException
@@ -40,6 +41,22 @@ void ReadWrite::Apply( FileMapper *ToPatchFile, FileMapper *ToFinishFile, FileMa
 	fileSize = ToPatch->GetFileSize();
 	PatchData = ( char * )ToPatch->GetView();
 
+	/*byte *pData = ( byte * )ToPatch->GetView();
+
+	byte HashData[ 16 ];
+	char Hash[ 16 ];
+	CMd5 md5;
+	Md5_Init( &md5 );
+	Md5_Update( &md5, pData, fileSize );
+	Md5_Final( &md5, HashData );
+
+	int pos = 0;
+	for( int i = 0; i < 16; ++i )
+	{
+		pos += snprintf( Hash + pos, sizeof( Hash ) - pos, "%02x", HashData[ i ] );
+	}*/
+
+	
 	// Для начала проверим заголовок файла, а вдруг это не он
 	std::string header = ReadString( 9 );
 	if( header.compare( "FRSNCDLTA" ) != 0 )
@@ -61,19 +78,25 @@ void ReadWrite::Apply( FileMapper *ToPatchFile, FileMapper *ToFinishFile, FileMa
 	// Читаем json данные
 	std::string metadataStr = ReadString( StrLength );
 
-	auto hash = ConstexprHashes::md5( ToPatch->GetView(), fileSize );
+	//! Сделать опцию на проверку хэша
+	//! 1. Только входящих файлов
+	//! 2. Входящих и выходящих
+	//! 3. Только Assembly-CSharp.dll
+	
+	std::unordered_map<std::string, std::string> parsedJson = ParseJson( metadataStr );
+	
+	// Данные входящего файла
+	expectedFileHashAlgorithm = parsedJson[ "expectedFileHashAlgorithm" ];	// MD5
+	expectedFileHash = parsedJson[ "expectedFileHash" ];
 
-	for( size_t i = 0; i < 16; i++ )
-	{
-		printf( "%02x", hash[ i ] & 0xff );
-	}
+	// Данные выходящего файла
+	baseFileHashAlgorithm = parsedJson[ "baseFileHashAlgorithm" ];	// MD5
+	baseFileHash = parsedJson[ "baseFileHash" ];
 
-	/*std::unordered_map<std::string, std::string> parsedJson = ParseJson( metadataStr );
+	if( lstrcmpiA( expectedFileHashAlgorithm.c_str(), "md5" ) == 0 )
+		auto baseFileHash_decode = to_hex( base64_decode( baseFileHash ) );
 
-	std::string HashAlgorithm = parsedJson[ "hashAlgorithm" ];
-	std::string ExpectedFileHash = parsedJson[ "expectedFileHash" ];
-
-	auto expectedHash = base64_decode( ExpectedFileHash );*/
+	//auto expectedHash = base64_decode( ExpectedFileHash );
 
 //	char* ToPatchFileData = static_cast< char* >( ToPatchFile.GetView() );
 //	char* ToFinishFileData = static_cast< char* >( ToFinishFile.GetView() );

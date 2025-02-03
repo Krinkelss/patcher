@@ -3,7 +3,7 @@
 
 const COMDLG_FILTERSPEC c_rgSaveTypes[] =
 {
-	{L"Ôאיכ ןאעקא (*.patch)",		L"*.patch"}
+	{L"Ôאיכ ןאעקא (*.update)",		L"*.update"}
 };
 
 SelectDialog::SelectDialog()
@@ -87,7 +87,7 @@ HRESULT SelectDialog::PickFile( const wchar_t *pszTitle )
 				hr = pfd->SetFileTypeIndex( 1 );
 				if( SUCCEEDED( hr ) )
 				{
-					hr = pfd->SetDefaultExtension( L"*.patch" );
+					hr = pfd->SetDefaultExtension( L"*.update" );
 				}
 			}
 
@@ -129,7 +129,8 @@ HRESULT SelectDialog::PickFile( const wchar_t *pszTitle )
 
 std::wstring SelectDialog::GetResult()
 {
-	return GetShortPath( Result );
+	//return GetShortPath( Result );
+	return Result;
 }
 
 std::wstring SelectDialog::GetShortPath( const std::wstring& longPath )

@@ -158,16 +158,20 @@
     <ClCompile Include="FileMapper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="md5.cpp" />
+    <ClCompile Include="miniz\miniz.c" />
     <ClCompile Include="ReadWriteFile.cpp" />
     <ClCompile Include="SelectDialog.cpp" />
-    <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="TmpFolder.cpp" />
+    <ClCompile Include="Utild.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64_decode.h" />
     <ClInclude Include="FileMapper.h" />
     <ClInclude Include="md5.h" />
+    <ClInclude Include="miniz.h" />
     <ClInclude Include="ReadWriteFile.h" />
     <ClInclude Include="SelectDialog.h" />
+    <ClInclude Include="TmpFolder.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

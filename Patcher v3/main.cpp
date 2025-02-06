@@ -234,6 +234,12 @@ int main( void )
 				MessageBoxA( NULL, e.what(), "ApplyPatch:bad_alloc", MB_OK | MB_ICONERROR );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
+
+			// Ошибки не случилось, можно работать с файлом дальше
+			// Для начала удалим значение из вектора
+			mPatchList.erase( it );
+
+
 		}
 	}
 
@@ -365,15 +371,19 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 
 		byte digest[ 16 ];
 
+		printf( "Вычисляем MD5 хэш файла %s\n", OriginalFile.c_str() );
+
 		CMd5 MD5;
 		Md5_Init( &MD5 );
 		Md5_Update( &MD5, ( byte * )FileBeforeFix.GetView(), FileBeforeFix.GetFileSize() );
 		Md5_Final( &MD5, digest );
 
 		std::string digesthash = binToHex( ( char * )digest, 16 );
-
+				
 		if( baseFileHash != digesthash )
 			throw std::runtime_error( "Хэш файла " + FileBeforeFix.FileName + " и хэш в файле патча не совпадают\nДальнейшая работа невозможна" );
+
+		printf( "Хэш  файла и хэш из патча совпадают, можно продолжать\n" );
 	}
 
 	// Хэши проверили, ошибка не вылетела, можно патчить файл
@@ -396,6 +406,8 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 				TmpBuf = ( byte * )realloc( TmpBuf, length );
 				if( TmpBuf == NULL )
 				{
+					free( TmpBuf );
+					TmpBuf = nullptr;
 					throw std::bad_alloc();
 				}
 				readBufferSize = length;
@@ -419,19 +431,25 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 			}
 		}
 		else
-			throw std::runtime_error( "Отладка процесса патчинга. Что то пошло не так\n" + PatchFile.FileName + "\n" + FileBeforeFix.FileName );
+		{ 
+			free( TmpBuf );
+			TmpBuf = nullptr;
+			throw std::runtime_error( "Неизвестный бит\n" + PatchFile.FileName + "\n" + FileBeforeFix.FileName );
+		}			
 	}
 
 	free( TmpBuf );
 	TmpBuf = nullptr;
 
 	// Проверим хзши после патчинга файла, если всё хорошо то они совпадут
-	if( MD5Check == MD5_FULL || MD5Check == MD5_IN || MD5Check == MD5_ACS )
+	if( MD5Check == MD5_FULL || MD5Check == MD5_ACS )
 	{
 		//std::string expectedFileHash = base64_decode( PatchFile.baseFileHash );
 		std::string expectedFileHash = base64_decode( PatchFile.expectedFileHash );
 
 		byte digest[ 16 ];
+
+		printf( "Вычисляем MD5 хэш файла %s\n", FileAfterFix.FileName.c_str() );
 
 		CMd5 MD5;
 		Md5_Init( &MD5 );
@@ -442,11 +460,9 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 
 		if( expectedFileHash != digesthash )
 			throw std::runtime_error( "Хэш файла " + FileBeforeFix.FileName + " и хэш в файле патча не совпадают\nДальнейшая работа невозможна" );
+
+		printf( "Хэш файла и хэш из патча совпадают, можно переименовывать\n" );
 	}
-
-	/*ReadWrite ReadWriteData;
-
-	ReadWriteData.Apply( &FileBeforeFix, &FileAfterFix, &PatchFile );*/
 
 	return true;
 }

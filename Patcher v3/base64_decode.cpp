@@ -52,10 +52,27 @@ std::string base64_decode( std::string const& encoded_string )
 		for( j = 0; ( j < i - 1 ); j++ ) ret += char_array_3[ j ];
 	}
 
-	return ret;
+	return binToHex( ret.c_str(), ret.size() );
 }
 
-std::string to_hex( const std::string &data )
+//Из названия понятно что выполняет функция. Для MD5 хэша
+std::string binToHex( const char* data, size_t length )
+{
+	const char hexDigits[] = "0123456789ABCDEF";
+	std::string hexString;
+	hexString.reserve( length * 2 );
+
+	for( size_t i = 0; i < length; ++i )
+	{
+		uint8_t byte = data[ i ];
+		hexString.push_back( hexDigits[ byte >> 4 ] );
+		hexString.push_back( hexDigits[ byte & 0x0F ] );
+	}
+
+	return hexString;
+}
+
+/*std::string binToHex( const std::string &data )
 {
 	std::string hex_output;
 	const char hex_chars[] = "0123456789abcdef"; // Символы для шестнадцатеричного представления
@@ -71,4 +88,4 @@ std::string to_hex( const std::string &data )
 		hex_output.push_back( low_nibble );
 	}
 	return hex_output;
-}
+}*/

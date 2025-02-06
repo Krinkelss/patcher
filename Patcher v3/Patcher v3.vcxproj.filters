@@ -21,9 +21,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="ReadWriteFile.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="base64_decode.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
@@ -47,9 +44,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ReadWriteFile.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="base64_decode.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
@@ -68,8 +62,11 @@
     <ClInclude Include="TmpFolder.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="miniz.h">
+    <ClInclude Include="miniz\miniz.h">
       <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="BinaryFormat.h">
+      <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

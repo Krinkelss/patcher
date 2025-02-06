@@ -4,7 +4,7 @@
 #include "Utils.h"
 #include "miniz/miniz.h"
 
-// получить версию файла
+// Получить версию файла
 std::wstring GetFileVersion( const std::wstring& filePath )
 {
 	DWORD handle = 0;
@@ -41,6 +41,7 @@ std::wstring GetFileVersion( const std::wstring& filePath )
 	return std::to_wstring( LOWORD( fileInfo->dwFileVersionLS ) );
 }
 
+// Извлекаем первую версию из имени файла с патчем
 std::wstring GetLastFiveDigits( const std::wstring& version )
 {
 	size_t pos = version.find_last_of( L'.' );
@@ -111,7 +112,7 @@ bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath )
 	std::string full_output_path;
 	std::string Rep;
 
-	int currentfile = 1;
+	int currentfile = 0;
 
 	// Извлечение каждого файла
 	for( int i = 0; i < file_count; ++i )
@@ -147,8 +148,10 @@ bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath )
 			return false;
 		}
 
-		printf( "Распаковано файлов [%d/%d]: %s\n", currentfile++, file_count, Rep.c_str() );
+		printf( "\rРаспаковано файлов %d[%d%%]", currentfile, currentfile++ * 100 / file_count );
 	}
+
+	printf( "\rРаспаковано файлов %d[100%%]", currentfile );
 
 	// Завершение работы с архивом
 	mz_zip_reader_end( &zip_archive );
@@ -182,4 +185,35 @@ std::vector<std::wstring> SearchFilesInDirectory( const std::wstring& directory,
 		}
 	}
 	return files;
+}
+
+// Парсинг json строки из памяти
+//! по возможности переделать
+std::unordered_map<std::string, std::string> ParseJson( const std::string& jsonString )
+{
+	std::unordered_map<std::string, std::string> result;
+	size_t pos = 0;
+	while( pos < jsonString.size() )
+	{
+		// Найти ключ
+		size_t keyStart = jsonString.find( '"', pos );
+		if( keyStart == std::string::npos ) break;
+		size_t keyEnd = jsonString.find( '"', keyStart + 1 );
+		if( keyEnd == std::string::npos ) break;
+		std::string key = jsonString.substr( keyStart + 1, keyEnd - keyStart - 1 );
+
+		// Найти значение
+		size_t valueStart = jsonString.find( '"', keyEnd + 1 );
+		if( valueStart == std::string::npos ) break;
+		size_t valueEnd = jsonString.find( '"', valueStart + 1 );
+		if( valueEnd == std::string::npos ) break;
+		std::string value = jsonString.substr( valueStart + 1, valueEnd - valueStart - 1 );
+
+		// Добавить ключ-значение в результат
+		result[ key ] = value;
+
+		// Обновить позицию
+		pos = valueEnd + 1;
+	}
+	return result;
 }

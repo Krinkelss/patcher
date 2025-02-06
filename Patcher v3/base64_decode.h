@@ -2,4 +2,4 @@
 #include <string>
 
 std::string base64_decode( std::string const& encoded_string );
-std::string to_hex( const std::string &data );
+std::string binToHex( const char* data, size_t length );

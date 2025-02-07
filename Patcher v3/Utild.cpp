@@ -151,7 +151,7 @@ bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath )
 		printf( "\rРаспаковано файлов %d[%d%%]", currentfile, currentfile++ * 100 / file_count );
 	}
 
-	printf( "\rРаспаковано файлов %d[100%%]", currentfile );
+	printf( "\rРаспаковано файлов %d[100%%]\n", currentfile );
 
 	// Завершение работы с архивом
 	mz_zip_reader_end( &zip_archive );

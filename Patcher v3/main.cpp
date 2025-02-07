@@ -17,7 +17,7 @@
 //#define MD5_ACS		3	// Проверить только Assembly-CSharp.dll
 
 constexpr uint32_t MD5_OFF	= 0; // Выкл
-constexpr uint32_t MD5_FULL = 1; // Проверка всех файлов
+constexpr uint32_t MD5_ALL = 1; // Проверка всех файлов
 constexpr uint32_t MD5_IN	= 2; // Проверка только входящих файлов
 constexpr uint32_t MD5_ACS	= 3; // Проверить только Assembly-CSharp.dll
 
@@ -46,9 +46,9 @@ int main( void )
 	wprintf( L"Patcher v3[%d.%d (%d)]: Copyright (c) 2025 Krinkels [krinkels.org]\r\n", dwMajorVersion, dwMinorVersion, dwBuild );*/
 	
 	//! Не забыть обработать переменную
-	int md5_check = MD5_ACS;
+	int md5_check = MD5_OFF;
 
-	//Для начала, выберем папку с игрой	
+	//Выберем папку с игрой	
 	SelectDialog sDialog;
 	HRESULT hr = sDialog.PickFolder( L"Выберите папку с игрой" );
 	if( FAILED( hr ) )
@@ -189,12 +189,12 @@ int main( void )
 
 	wprintf( L"Распаковываем патч\n" );
 	//! Не забыть вернуть
-	//ExtractZipArchive( PatchFile, fTmp.ReturnTempPath() );
-	ExtractZipArchive( PatchFile, L"D:\\123\\Tmp\\" );
+	ExtractZipArchive( PatchFile, fTmp.ReturnTempPath() );
+	//ExtractZipArchive( PatchFile, L"D:\\123\\Tmp\\" );
 
 	// Теперь найдём все файлы во временной папке
-	//std::vector<std::wstring> mPatchList = SearchAllFilesInDirectory( fTmp.ReturnTempPath() );
-	std::vector<std::wstring> mPatchList = SearchAllFilesInDirectory( L"D:\\123\\Tmp" );
+	std::vector<std::wstring> mPatchList = SearchAllFilesInDirectory( fTmp.ReturnTempPath() );
+	//std::vector<std::wstring> mPatchList = SearchAllFilesInDirectory( L"D:\\123\\Tmp" );
 
 	if( mPatchList.size() == 0 )
 	{
@@ -218,11 +218,72 @@ int main( void )
 			// Функция для применения патча. Параметры:
 			// Путь к папке с игрой
 			// Список патчей
-			//ApplyPatch( GamePath, fTmp.ReturnTempPath(), *it );
-			//! не забыть вернуть
 			try
 			{
-				ApplyPatch( GamePath, L"D:\\123\\Tmp\\", *it, md5_check );
+				ApplyPatch( GamePath, fTmp.ReturnTempPath(), *it, md5_check );
+			}
+			catch( const std::runtime_error& e )
+			{
+				MessageBoxA( NULL, e.what(), "ApplyPatch:runtime_error", MB_OK | MB_ICONERROR );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+			catch( const std::bad_alloc& e )
+			{
+				MessageBoxA( NULL, e.what(), "ApplyPatch:bad_alloc", MB_OK | MB_ICONERROR );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+						
+			// Теперь нужно скопировать файл в папку
+			// Получим относительный путь к файлу с патчем
+			std::wstring relativePath = std::filesystem::relative( *it, fTmp.ReturnTempPath() ).replace_extension();
+
+			try
+			{
+				const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
+				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath + L"_copy", copyOptions );	// Для отладки
+			}
+			catch( const std::filesystem::filesystem_error& e )
+			{
+				MessageBoxA( NULL, e.what(), "Копирование файла", MB_OK | MB_ICONERROR );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+			catch( std::error_code& e )
+			{
+				MessageBoxA( NULL, e.message().c_str(), "Копирование файла", MB_OK | MB_ICONERROR );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+
+			if( std::filesystem::remove( GamePath + L"\\123.tmp" ) == false )
+			{
+				MessageBox( nullptr, L"Не могу удалить файл 123.tmp", L"Внимание", MB_ICONERROR );
+				return 0;
+			}
+
+			// Ошибки не случилось, можно работать с файлом дальше
+			// Удалим значение из вектора
+			mPatchList.erase( it );
+		}
+	}
+
+	int FilesProcessed = 0;
+
+	for( auto sData : mPatchList )
+	{
+		if( FilesProcessed == 1063 )
+			int TT = 0;
+
+		wprintf( L"[%d//%d]------------------------------------------------\n",  FilesProcessed++, mPatchList.size() );
+		//auto fName = std::filesystem::path( sData ).
+		// В архиве с патчем могут быть и другие файлы, а не только .patch файлы.
+		// Нам нужно обработать .patch, а потом займёмся остальными
+		if( std::filesystem::path( sData ).extension().compare( L".patch" ) == 0 ) // То бишь расширение файла равно .patch
+		{// Вот и файл патча
+			
+			// Путь к папке с игрой
+			// Список патчей
+			try
+			{
+				ApplyPatch( GamePath, fTmp.ReturnTempPath(), sData, md5_check );
 			}
 			catch( const std::runtime_error& e )
 			{
@@ -235,29 +296,53 @@ int main( void )
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 
-			// Ошибки не случилось, можно работать с файлом дальше
-			// Для начала удалим значение из вектора
-			mPatchList.erase( it );
+			// Теперь нужно скопировать файл в папку
+			// Получим относительный путь к файлу с патчем
+			std::wstring relativePath = std::filesystem::relative( sData, fTmp.ReturnTempPath() ).replace_extension();
 
+			try
+			{
+				const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
+				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath + L"_copy", copyOptions );	//! Для отладки
+			}
+			catch( const std::filesystem::filesystem_error& e )
+			{
+				MessageBoxA( NULL, e.what(), "Копирование файла", MB_OK | MB_ICONERROR );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+			catch( std::error_code& e )
+			{
+				MessageBoxA( NULL, e.message().c_str(), "Копирование файла", MB_OK | MB_ICONERROR );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
 
+			if( std::filesystem::remove( GamePath + L"\\123.tmp" ) == false )
+			{
+				MessageBox( nullptr, L"Не могу удалить файл 123.tmp", L"Внимание", MB_ICONERROR );
+				return 0;
+			}
 		}
-	}
+		else
+		{// Просто файл, который нужно скопировать с заменой
+			
+			// Получим относительный путь к файлу с патчем
+			std::wstring relativePath = std::filesystem::relative( sData, fTmp.ReturnTempPath() );
 
-	for( auto sData : mPatchList )
-	{
-		//auto fName = std::filesystem::path( sData ).
-		// В архиве с патчем могут быть и другие файлы, а не только .patch файлы.
-		// Для начала нам нужно обработать .patch, а потом займёмся остальными
-		if( std::filesystem::path( sData ).extension().compare( L".patch" ) == 0 ) // То бишь расширение файла равно .patch
-		{
-			// Вот и файл патча
-
-
-
-
-
-
-			return 0;
+			try
+			{
+				const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
+				std::filesystem::copy( sData, GamePath + L"\\" + relativePath + L"_copy", copyOptions ); //! Для отладки
+			}
+			catch( const std::filesystem::filesystem_error& e )
+			{
+				MessageBoxA( NULL, e.what(), "Копирование файла", MB_OK | MB_ICONERROR );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+			catch( std::error_code& e )
+			{
+				MessageBoxA( NULL, e.message().c_str(), "Копирование файла", MB_OK | MB_ICONERROR );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}			
 		}
 	}
 
@@ -284,7 +369,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	// OriginalFile = EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll
 
 
-	// Для начала получим относительный путь к файлу с патчем
+	// Получим относительный путь к файлу с патчем
 	std::filesystem::path relativePath = std::filesystem::relative( fPatch, TmpPath );
 	
 	// Оригинальный файл в папке с игрой
@@ -296,7 +381,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	FileMapper FileAfterFix;		// Файл который получится после патча
 	FileMapper PatchFile;			// Файл с патчем, .patch
 
-	// Для начала обработаем файл с патчем. 
+	// Обработаем файл с патчем. 
 	// Один раз было что у него другая "шапка" была, и отсюда всё сломалось
 	try
 	{
@@ -364,14 +449,14 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	//? А нужно ли, в дальнейшем, патчить файл?
 
 	// Проверим хзши, если всё хорошо то они совпадут
-	if( MD5Check == MD5_FULL || MD5Check == MD5_IN || MD5Check == MD5_ACS )
+	if( MD5Check == MD5_ALL || MD5Check == MD5_IN || MD5Check == MD5_ACS )
 	{
 		//std::string expectedFileHash = base64_decode( PatchFile.expectedFileHash );
 		std::string baseFileHash = base64_decode( PatchFile.baseFileHash );
 
 		byte digest[ 16 ];
 
-		printf( "Вычисляем MD5 хэш файла %s\n", OriginalFile.c_str() );
+		printf( "Вычисляем MD5 хэш файла %s\n", OriginalFile.string().c_str() );
 
 		CMd5 MD5;
 		Md5_Init( &MD5 );
@@ -442,7 +527,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	TmpBuf = nullptr;
 
 	// Проверим хзши после патчинга файла, если всё хорошо то они совпадут
-	if( MD5Check == MD5_FULL || MD5Check == MD5_ACS )
+	if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
 	{
 		//std::string expectedFileHash = base64_decode( PatchFile.baseFileHash );
 		std::string expectedFileHash = base64_decode( PatchFile.expectedFileHash );

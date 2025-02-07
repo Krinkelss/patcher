@@ -50,6 +50,7 @@ private:
 	//uint8_t* cursor;
 	PVOID pData;
 	UINT CurrentOffset = 0;	
+	bool EndWork;
 
 private:
 	DWORD mappingAccess = PAGE_READONLY;

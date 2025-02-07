@@ -42,7 +42,8 @@ void FileMapper::Init( const wchar_t *filePath, bool writeAccess )
 		throw std::runtime_error( "Failed to open file." );
 	}
 
-	fileSize = fGetFileSize( filePath );
+	int TT = fGetFileSize( filePath );
+	fileSize = std::filesystem::file_size( filePath );
 	if( fileSize == INVALID_FILE_SIZE && writeAccess == false )
 	{
 		throw std::runtime_error( "Не могу получить размер файла." );
@@ -54,11 +55,16 @@ void FileMapper::Init( const wchar_t *filePath, bool writeAccess )
 
 	PatchData = pView;
 
+	EndWork = false;
+
 	//cursor = static_cast< uint8_t* >( pView );
 }
 
 FileMapper::~FileMapper()
 {
+	if( EndWork == true )
+		return;
+
 	if( pView )
 	{
 		UnmapViewOfFile( pView );
@@ -71,7 +77,24 @@ FileMapper::~FileMapper()
 	{
 		CloseHandle( hFile );
 	}
+
+	EndWork = true;
 }
+
+void PrintError( void )
+{
+	LPVOID lpMsgBuf;
+	DWORD dw = GetLastError();
+
+	SetLastError( 0 );
+
+	FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dw, MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), ( LPTSTR )&lpMsgBuf, 0, NULL );
+
+	wprintf( L"Errorcode %i: %s\n", dw, lpMsgBuf );
+
+	LocalFree( lpMsgBuf );
+}
+
 
 void FileMapper::Map()
 {
@@ -79,6 +102,7 @@ void FileMapper::Map()
 	if( hMapping == NULL )
 	{
 		CloseHandle( hFile );
+		PrintError();
 		throw std::runtime_error( "Failed to create file mapping." );
 	}
 
@@ -87,6 +111,7 @@ void FileMapper::Map()
 	{
 		CloseHandle( hMapping );
 		CloseHandle( hFile );
+		PrintError();
 		throw std::runtime_error( "Failed to map view of file." );
 	}
 }

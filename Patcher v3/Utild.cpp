@@ -71,23 +71,41 @@ std::wstring ExtractVersion( const std::wstring& fileName )
 	return GetLastFiveDigits( fileName.substr( start, end - start ) );
 }
 
-//Получить имя файла
-std::wstring GetFileName( const std::wstring& filePath )
-{
-	size_t pos = filePath.find_last_of( L"\\/" );
-	if( pos == std::wstring::npos )
-	{
-		return filePath;
-	}
-	return filePath.substr( pos + 1 );
-}
-
 std::string wstring_to_string( const std::wstring& wstr )
 {
 	int size_needed = WideCharToMultiByte( CP_UTF8, 0, wstr.c_str(), ( int )wstr.size(), NULL, 0, NULL, NULL );
+	if( size_needed == 0 )
+		throw std::runtime_error( "Ошибка конвертации Unicode в ANSI" );
+	
 	std::string str( size_needed, 0 );
-	WideCharToMultiByte( CP_UTF8, 0, wstr.c_str(), ( int )wstr.size(), &str[ 0 ], size_needed, NULL, NULL );
+	if( WideCharToMultiByte( CP_UTF8, 0, wstr.c_str(), ( int )wstr.size(), &str[ 0 ], size_needed, NULL, NULL ) == 0 )
+		throw std::runtime_error( "Ошибка конвертации Unicode в ANSI" );
+
 	return str;
+}
+
+std::wstring AnsiToUnicode( const std::string& ansi )
+{
+	// Определяем длину результирующей строки в UTF-16
+	int length = MultiByteToWideChar( CP_ACP, 0, ansi.c_str(), -1, nullptr, 0 );
+	if( length == 0 )
+	{
+		throw std::runtime_error( "Failed to convert ANSI to Unicode" );
+	}
+
+	// Выделяем память для результирующей строки
+	std::wstring unicode( length, 0 );
+
+	// Выполняем преобразование
+	if( MultiByteToWideChar( CP_ACP, 0, ansi.c_str(), -1, &unicode[ 0 ], length ) == 0 )
+	{
+		throw std::runtime_error( "Failed to convert ANSI to Unicode" );
+	}
+
+	// Убираем завершающий нулевой символ
+	unicode.resize( length - 1 );
+
+	return unicode;
 }
 
 bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath )
@@ -148,10 +166,10 @@ bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath )
 			return false;
 		}
 
-		printf( "\rРаспаковано файлов %d[%d%%]", currentfile, currentfile++ * 100 / file_count );
+		wprintf( L"\rРаспаковано файлов %d[%d%%]", currentfile, currentfile++ * 100 / file_count );
 	}
 
-	printf( "\rРаспаковано файлов %d[100%%]\n", currentfile );
+	wprintf( L"\rРаспаковано файлов %d[100%%]\n", currentfile );
 
 	// Завершение работы с архивом
 	mz_zip_reader_end( &zip_archive );

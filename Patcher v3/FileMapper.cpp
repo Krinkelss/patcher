@@ -46,7 +46,7 @@ void FileMapper::Init( const wchar_t *filePath, bool writeAccess )
 	fileSize = std::filesystem::file_size( filePath );
 	if( fileSize == INVALID_FILE_SIZE && writeAccess == false )
 	{
-		throw std::runtime_error( "Не могу получить размер файла." );
+		throw std::runtime_error( "Не могу получить размер файла:\n" + FileName );
 	}
 	if( fileSize == 0 )
 		fileSize = 1;
@@ -87,7 +87,7 @@ void FileMapper::Map()
 	if( hMapping == NULL )
 	{
 		CloseHandle( hFile );
-		throw std::runtime_error( "Failed to create file mapping." );
+		throw std::runtime_error( "Failed to create file mapping:\n" + FileName );
 	}
 
 	pView = ( char * )MapViewOfFile( hMapping, viewAccess, 0, 0, 0 );
@@ -95,7 +95,7 @@ void FileMapper::Map()
 	{
 		CloseHandle( hMapping );
 		CloseHandle( hFile );
-		throw std::runtime_error( "Failed to map view of file." );
+		throw std::runtime_error( "Failed to map view of file:\n" + FileName );
 	}
 }
 
@@ -127,7 +127,7 @@ DWORD FileMapper::GetFileSize()
 void FileMapper::ReadData( char *Data, size_t Offset, size_t Len )
 {
 	if( Offset >= fileSize )
-		throw std::runtime_error( "Смещение больше чем сам файл" );
+		throw std::runtime_error( "Смещение больше чем сам файл:\n" + FileName );
 
 	memcpy( Data, pView + Offset, Len );
 }
@@ -164,7 +164,7 @@ std::string FileMapper::ReadString( size_t length )
 void FileMapper::ReadBytes( char *Data, size_t length )
 {
 	if( PatchData + length > PatchData + fileSize )
-		throw std::runtime_error( "Смещение больше чем файл патча" );
+		throw std::runtime_error( "Смещение больше чем файл:\n" + FileName );
 
 	memcpy( Data, PatchData, length );
 	PatchData += length;
@@ -196,18 +196,4 @@ DWORD FileMapper::fGetFileSize( const wchar_t* filePath )
 	fileSize.HighPart = fileInfo.nFileSizeHigh;
 
 	return ( DWORD )fileSize.QuadPart;
-}
-
-std::string FileMapper::ConvertUnicodeToAnsi( const std::wstring& unicodeString )
-{
-	int ansiLength = WideCharToMultiByte( CP_ACP, 0, unicodeString.c_str(), -1, NULL, 0, NULL, NULL );
-	if( ansiLength == 0 )
-	{
-		throw std::runtime_error( "Failed to convert Unicode to ANSI." );
-	}
-
-	std::string ansiString( ansiLength, 0 );
-	WideCharToMultiByte( CP_ACP, 0, unicodeString.c_str(), -1, &ansiString[ 0 ], ansiLength, NULL, NULL );
-
-	return ansiString;
 }

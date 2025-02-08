@@ -36,7 +36,6 @@ private:
 	bool FileExists( const wchar_t* fname );
 	bool FileReadOnly( wchar_t* fname );
 	DWORD fGetFileSize( const wchar_t* filePath );
-	std::string ConvertUnicodeToAnsi( const std::wstring& unicodeString );
 	
 public:
 	std::string FileName;

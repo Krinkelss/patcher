@@ -101,7 +101,7 @@ int main( void )
 		}
 		catch( const std::filesystem::filesystem_error& e )
 		{
-			MessageBoxA( NULL, e.what(), "std::filesystem::remove", MB_OK | MB_ICONERROR );
+			MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Не могу удалить файл 123.tmp", MB_OK | MB_ICONERROR );
 			return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 		}		
 	}
@@ -112,7 +112,7 @@ int main( void )
 
 	wprintf( L"Обнаружена версии Таркова: %s\n", versionexe.c_str() );
 
-	std::wstring PatchFrom = ExtractVersion( GetFileName( PatchFile ) );
+	std::wstring PatchFrom = ExtractVersion( std::filesystem::path( PatchFile ).filename().wstring() );
 
 	if( versionexe != PatchFrom )
 	{
@@ -133,7 +133,7 @@ int main( void )
 	}
 	catch( const std::filesystem::filesystem_error& e )
 	{
-		MessageBoxA( NULL, e.what(), "Бэкап EscapeFromTarkov.exe", MB_OK | MB_ICONERROR );
+		MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Бэкап EscapeFromTarkov.exe", MB_OK | MB_ICONERROR );
 		return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 	}
 
@@ -193,12 +193,11 @@ int main( void )
 
 	wprintf( L"Распаковываем патч\n" );
 	//! Не забыть вернуть
-	ExtractZipArchive( PatchFile, fTmp.ReturnTempPath() );
-	//ExtractZipArchive( PatchFile, L"D:\\123\\Tmp\\" );
+	if( ExtractZipArchive( PatchFile, fTmp.ReturnTempPath() ) == false )
+		return 0;
 
 	// Теперь найдём все файлы во временной папке
 	std::vector<std::wstring> mPatchList = SearchAllFilesInDirectory( fTmp.ReturnTempPath() );
-	//std::vector<std::wstring> mPatchList = SearchAllFilesInDirectory( L"D:\\123\\Tmp" );
 
 	if( mPatchList.size() == 0 )
 	{
@@ -211,7 +210,6 @@ int main( void )
 	char *memBuf = ( char * )VirtualAlloc( NULL, TWOGIGA, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
 	if( memBuf == NULL )
 	{
-		//std::cerr << "VirtualAlloc failed: " << GetLastError() << std::endl;
 		wprintf( L"Ошибка выделения памяти через VirtualAlloc. Errorcode: %d\n", GetLastError() );
 		return 0;
 	}
@@ -219,8 +217,9 @@ int main( void )
 	char *TmpBuf = ( char * )malloc( readBufferSize ); // Выделяем буфер один раз
 	if( TmpBuf == NULL )
 	{
-		//std::cerr << "VirtualAlloc failed: " << GetLastError() << std::endl;
 		wprintf( L"Ошибка выделения памяти через malloc. Errorcode: %d\n", GetLastError() );
+		VirtualFree( memBuf, 0, MEM_RELEASE );
+		memBuf = nullptr;
 		return 0;
 	}
 
@@ -238,17 +237,16 @@ int main( void )
 			try
 			{
 				ApplyPatch( GamePath, fTmp.ReturnTempPath(), sData, memBuf, TmpBuf, md5_check );
-				//ApplyPatch( GamePath, L"D:\\123\\Tmp\\", sData, memBuf, TmpBuf, md5_check );
 			}
 			catch( const std::runtime_error& e )
 			{
-				MessageBoxA( NULL, e.what(), "ApplyPatch:runtime_error", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + sData ).c_str(), L"ApplyPatch:runtime_error", MB_OK | MB_ICONERROR );
 				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( const std::bad_alloc& e )
 			{
-				MessageBoxA( NULL, e.what(), "ApplyPatch:bad_alloc", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + sData ).c_str(), L"ApplyPatch:bad_alloc", MB_OK | MB_ICONERROR );
 				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
@@ -256,7 +254,6 @@ int main( void )
 			// Теперь нужно скопировать файл в папку
 			// Получим относительный путь к файлу с патчем
 			std::wstring relativePath = std::filesystem::relative( sData, fTmp.ReturnTempPath() ).replace_extension();
-			//std::wstring relativePath = std::filesystem::relative( sData, L"D:\\123\\Tmp\\" ).replace_extension();
 
 			try
 			{
@@ -265,13 +262,13 @@ int main( void )
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
-				MessageBoxA( NULL, e.what(), "Копирование файла", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + sData ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
 				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( std::error_code& e )
 			{
-				MessageBoxA( NULL, e.message().c_str(), "Копирование файла", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, ( AnsiToUnicode( e.message() ) + L"\n" + sData ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
 				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
@@ -296,13 +293,13 @@ int main( void )
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
-				MessageBoxA( NULL, e.what(), "Копирование файла", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + sData ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
 				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( std::error_code& e )
 			{
-				MessageBoxA( NULL, e.message().c_str(), "Копирование файла", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, ( AnsiToUnicode( e.message() ) + L"\n" + sData ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
 				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
@@ -310,6 +307,8 @@ int main( void )
 	}
 
 	FreeAllMem( memBuf, TmpBuf );
+
+	std::filesystem::remove( GamePath + L"\\123.tmp" );
 
 	return 0;
 }
@@ -355,7 +354,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	}
 	catch( const std::runtime_error& e )
 	{
-		MessageBoxA( NULL, e.what(), "PatchFile.Init", MB_OK | MB_ICONERROR );
+		MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + fPatch ).c_str(), L"PatchFile.Init", MB_OK | MB_ICONERROR );
 		return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 	}
 
@@ -469,8 +468,6 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 		{
 			throw std::runtime_error( "Неизвестный байт" );
 		}
-		uint32_t TT = PatchFile.GetPosition();
-		uint32_t TT1 = PatchFile.GetFileSize();
 
 		uint32_t percent = PatchFile.GetPosition() * 100 / PatchFile.GetFileSize();
 

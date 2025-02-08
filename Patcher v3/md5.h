@@ -19,5 +19,5 @@ typedef struct
 } CMd5;
 
 void Md5_Init( CMd5 *p );
-void Md5_Update( CMd5 *p, const byte *data, size_t size );
+void Md5_Update( CMd5 *p, byte *data, size_t size );
 void Md5_Final( CMd5 *p, byte *digest );

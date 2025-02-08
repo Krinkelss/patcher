@@ -17,9 +17,8 @@
 //#define MD5_ACS		3	// Проверить только Assembly-CSharp.dll
 
 constexpr uint32_t MD5_OFF	= 0; // Выкл
-constexpr uint32_t MD5_ALL = 1; // Проверка всех файлов
-constexpr uint32_t MD5_IN	= 2; // Проверка только входящих файлов
-constexpr uint32_t MD5_ACS	= 3; // Проверить только Assembly-CSharp.dll
+constexpr uint32_t MD5_ALL	= 1; // Проверка всех файлов
+constexpr uint32_t MD5_ACS	= 2; // Проверить только Assembly-CSharp.dll
 
 constexpr uint32_t TWOGIGA = 2 * 1024 * 1024 * 1024;	// 2 гигабайта
 uint32_t readBufferSize = 4 * 1024 * 1024;
@@ -50,7 +49,8 @@ int main( void )
 	wprintf( L"Patcher v3[%d.%d (%d)]: Copyright (c) 2025 Krinkels [krinkels.org]\r\n", dwMajorVersion, dwMinorVersion, dwBuild );*/
 	
 	//! Не забыть обработать переменную
-	int md5_check = MD5_OFF;
+	int md5_check = MD5_ACS;
+	int FilesProcessed = 0;
 
 	//Выберем папку с игрой	
 	SelectDialog sDialog;
@@ -223,8 +223,73 @@ int main( void )
 		return 0;
 	}
 
-	int FilesProcessed = 0;
+	// В последнее время появляются какие то проблемы с Assembly-CSharp.dll
+	// По этому, если задана MD5_ACS, то первым делом проверим эту библиотечку
+	if( md5_check == MD5_ACS )
+	{		
+		// Ищем
+		auto it = std::find_if( mPatchList.begin(), mPatchList.end(), []( const std::wstring& file )
+		{
+			return std::filesystem::path( file ).filename() == L"Assembly-CSharp.dll.patch";
+		} );
 
+		// Находим
+		if( it != mPatchList.end() )
+		{
+			wprintf( L"[%d//%d]\n", FilesProcessed++, mPatchList.size() );
+
+			try
+			{
+				ApplyPatch( GamePath, fTmp.ReturnTempPath(), *it, memBuf, TmpBuf, md5_check );
+			}
+			catch( const std::runtime_error& e )
+			{
+				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + *it ).c_str(), L"ApplyPatch:runtime_error", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+			catch( const std::bad_alloc& e )
+			{
+				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + *it ).c_str(), L"ApplyPatch:bad_alloc", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+
+			// Теперь нужно скопировать файл в папку
+			// Получим относительный путь к файлу с патчем
+			std::wstring relativePath = std::filesystem::relative( *it, fTmp.ReturnTempPath() ).replace_extension();
+
+			try
+			{
+				const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
+				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath + L"_copy", copyOptions );	//! Для отладки
+			}
+			catch( const std::filesystem::filesystem_error& e )
+			{
+				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + *it ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+			catch( std::error_code& e )
+			{
+				MessageBox( NULL, ( AnsiToUnicode( e.message() ) + L"\n" + *it ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+
+			if( std::filesystem::remove( GamePath + L"\\123.tmp" ) == false )
+			{
+				MessageBox( nullptr, L"Не могу удалить файл 123.tmp", L"Внимание", MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
+				return 0;
+			}
+
+			// Ошибки не случилось, можно работать с файлом дальше
+			// Удалим значение из вектора
+			mPatchList.erase( it );
+		}
+	}
+		
 	for( auto sData : mPatchList )
 	{
 		wprintf( L"[%d//%d]\n", FilesProcessed++, mPatchList.size() );
@@ -333,7 +398,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	uint32_t b;
 	uint32_t soFar;
 	int RB; // Байты для чтения из файла с патчем
-	uint32_t WriteData = 0;
+	uint32_t WriteData = 0, readData = 0;
 	uint32_t progressPercentage = -1;
 	
 	// Получим относительный путь к файлу с патчем
@@ -405,6 +470,11 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 
 	char *PatchDataEnd = PatchFile.GetView() + PatchFile.GetFileSize(); // Указатель на конец данных
 
+	CMd5 md5Context;
+
+	if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
+		Md5_Init( &md5Context );
+
 	while( PatchFile.PatchData < PatchDataEnd )
 	{
 		b = PatchFile.ReadByte();
@@ -420,11 +490,14 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 				throw std::runtime_error( "Ошибка при установке смещения в оригинальном файле" );
 
 			// Читаем данные
-			fread( memBuf, 1, length, FileBeforeFix );
+			readData = fread( memBuf, 1, length, FileBeforeFix );
 			if( ferror( FileBeforeFix ) )
 			{
 				throw std::runtime_error( "Ошибка при чтении оригинального файла" );
 			}
+
+			if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
+				Md5_Update( &md5Context, ( unsigned char * )memBuf, readData );
 
 			// Пишем в файл
 			WriteData = fwrite( memBuf, 1, length, FileAfterFix );
@@ -449,6 +522,10 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 				RB = min( static_cast< int64_t >( length - soFar ), static_cast< int64_t >( readBufferSize ) );
 
 				PatchFile.ReadBytes( TmpBuf, RB );
+
+				if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
+					Md5_Update( &md5Context, ( unsigned char * )TmpBuf, RB );
+
 				// Пишем в файл
 				WriteData = fwrite( TmpBuf, 1, RB, FileAfterFix );
 				if( ferror( FileAfterFix ) )
@@ -477,6 +554,28 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 			progressPercentage = percent;
 			wprintf( L"%d%%\n", percent );
 		}
+	}
+
+	if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
+	{
+		unsigned char md5Digest[ 16 ]; // MD5-хэш состоит из 16 байт
+		Md5_Final( &md5Context, md5Digest );
+
+		std::string expectedFileHash = base64_decode( PatchFile.expectedFileHash );
+		std::string digesthash = binToHex( ( char * )md5Digest, 16 );
+
+		if( expectedFileHash != digesthash )
+			throw std::runtime_error( "Хэш файла " + std::filesystem::path( fPatch ).filename().string() + " и хэш в файле патча не совпадают\nДальнейшая работа невозможна" );
+
+		printf( "Хэш файла и хэш из патча совпадают, можно переименовывать\n" );
+
+		// Выводим MD5-хэш в виде шестнадцатеричной строки
+		/*printf( "MD5-хэш файла: " );
+		for( int i = 0; i < 16; i++ )
+		{
+			printf( "%02x", md5Digest[ i ] );
+		}
+		printf( "\n" );*/
 	}
 
 	fclose( FileAfterFix );

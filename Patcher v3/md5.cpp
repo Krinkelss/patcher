@@ -90,7 +90,7 @@ static void Md5_UpdateBlocks( UINT state[ 4 ], const byte *data, size_t numBlock
 
 #define Md5_UpdateBlock(p) MD5_UPDATE_BLOCKS(p)(p->state, p->buffer, 1)
 
-void Md5_Update( CMd5 *p, const byte *data, size_t size )
+void Md5_Update( CMd5 *p, byte *data, size_t size )
 {
 	if( size == 0 )
 		return;

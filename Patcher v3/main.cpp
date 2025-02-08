@@ -25,6 +25,7 @@ constexpr uint32_t TWOGIGA = 2 * 1024 * 1024 * 1024;	// 2 гигабайта
 uint32_t readBufferSize = 4 * 1024 * 1024;
 
 bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, char *TmpBuf, DWORD MD5Check );
+void FreeAllMem( char * memBuf, char *TmpBuf );
 
 int main( void )
 {	
@@ -242,11 +243,13 @@ int main( void )
 			catch( const std::runtime_error& e )
 			{
 				MessageBoxA( NULL, e.what(), "ApplyPatch:runtime_error", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( const std::bad_alloc& e )
 			{
 				MessageBoxA( NULL, e.what(), "ApplyPatch:bad_alloc", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 
@@ -263,17 +266,20 @@ int main( void )
 			catch( const std::filesystem::filesystem_error& e )
 			{
 				MessageBoxA( NULL, e.what(), "Копирование файла", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( std::error_code& e )
 			{
 				MessageBoxA( NULL, e.message().c_str(), "Копирование файла", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 
 			if( std::filesystem::remove( GamePath + L"\\123.tmp" ) == false )
 			{
 				MessageBox( nullptr, L"Не могу удалить файл 123.tmp", L"Внимание", MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
 				return 0;
 			}
 		}
@@ -291,22 +297,29 @@ int main( void )
 			catch( const std::filesystem::filesystem_error& e )
 			{
 				MessageBoxA( NULL, e.what(), "Копирование файла", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( std::error_code& e )
 			{
 				MessageBoxA( NULL, e.message().c_str(), "Копирование файла", MB_OK | MB_ICONERROR );
+				FreeAllMem( memBuf, TmpBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 		}
 	}
 
+	FreeAllMem( memBuf, TmpBuf );
+
+	return 0;
+}
+
+void FreeAllMem( char * memBuf, char *TmpBuf )
+{
 	VirtualFree( memBuf, 0, MEM_RELEASE );
 	memBuf = nullptr;
 	free( TmpBuf );
 	TmpBuf = nullptr;
-
-	return 0;
 }
 
 // Функция патчинга файлов

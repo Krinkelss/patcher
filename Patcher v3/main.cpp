@@ -103,7 +103,12 @@ int main( void )
 		{
 			MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Не могу удалить файл 123.tmp", MB_OK | MB_ICONERROR );
 			return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
-		}		
+		}
+		catch( const std::error_code& e )
+		{
+			MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Не могу удалить файл 123.tmp", MB_OK | MB_ICONERROR );
+			return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+		}
 	}
 
 	//////////////////////////////////////////////////////////////
@@ -136,6 +141,11 @@ int main( void )
 		MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Бэкап EscapeFromTarkov.exe", MB_OK | MB_ICONERROR );
 		return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 	}
+	catch( const std::error_code& e )
+	{
+		MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Бэкап EscapeFromTarkov.exe", MB_OK | MB_ICONERROR );
+		return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+	}
 
 	// Найдём все файлы по маске "Assembly-CSharp*". Если больше двух то  это что то не то
 	std::vector<std::wstring> ACfiles = SearchFilesInDirectory( GamePath + L"\\EscapeFromTarkov_Data\\Managed", L"Assembly-CSharp" );
@@ -162,7 +172,12 @@ int main( void )
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
-				MessageBoxA( NULL, e.what(), "std::filesystem", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"std::filesystem", MB_OK | MB_ICONERROR );
+				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			}
+			catch( const std::error_code& e )
+			{
+				MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"std::filesystem", MB_OK | MB_ICONERROR );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 		}

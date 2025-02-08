@@ -5,6 +5,7 @@
 std::wstring GetFileVersion( const std::wstring& filePath );
 std::wstring ExtractVersion( const std::wstring& fileName );
 std::wstring GetFileName( const std::wstring& filePath );
+std::string wstring_to_string( const std::wstring& wstr );
 bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath );
 std::vector<std::wstring> SearchAllFilesInDirectory( const std::wstring& directory );
 std::vector<std::wstring> SearchFilesInDirectory( const std::wstring& directory, const std::wstring& filePattern );

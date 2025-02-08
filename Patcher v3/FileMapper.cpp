@@ -17,7 +17,7 @@ void FileMapper::Init( const wchar_t *filePath, bool writeAccess )
 		mappingAccess = PAGE_READWRITE;
 		viewAccess = FILE_MAP_WRITE;
 	}
-
+	
 	std::filesystem::path path( filePath );
 	FileName = path.filename().string();
 
@@ -81,28 +81,12 @@ FileMapper::~FileMapper()
 	EndWork = true;
 }
 
-void PrintError( void )
-{
-	LPVOID lpMsgBuf;
-	DWORD dw = GetLastError();
-
-	SetLastError( 0 );
-
-	FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dw, MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), ( LPTSTR )&lpMsgBuf, 0, NULL );
-
-	wprintf( L"Errorcode %i: %s\n", dw, lpMsgBuf );
-
-	LocalFree( lpMsgBuf );
-}
-
-
 void FileMapper::Map()
 {
 	hMapping = CreateFileMappingW( hFile, NULL, mappingAccess, 0, fileSize, NULL );
 	if( hMapping == NULL )
 	{
 		CloseHandle( hFile );
-		PrintError();
 		throw std::runtime_error( "Failed to create file mapping." );
 	}
 
@@ -111,7 +95,6 @@ void FileMapper::Map()
 	{
 		CloseHandle( hMapping );
 		CloseHandle( hFile );
-		PrintError();
 		throw std::runtime_error( "Failed to map view of file." );
 	}
 }
@@ -131,21 +114,17 @@ char* FileMapper::GetView()
 	return pView;
 }
 
+uint32_t FileMapper::GetPosition()
+{
+	return Position;
+}
+
 DWORD FileMapper::GetFileSize()
 {
 	return fileSize;
 }
 
-void FileMapper::WriteData( byte *pData, size_t bytes )
-{
-	if( CurrentOffset + bytes > fileSize )
-		ReMap( ( CurrentOffset + bytes ) - fileSize );
-
-	memcpy( pView + CurrentOffset, pData, bytes );
-	CurrentOffset += bytes;
-}
-
-void FileMapper::ReadData( byte *Data, size_t Offset, size_t Len )
+void FileMapper::ReadData( char *Data, size_t Offset, size_t Len )
 {
 	if( Offset >= fileSize )
 		throw std::runtime_error( "Смещение больше чем сам файл" );
@@ -166,6 +145,9 @@ uint8_t FileMapper::ReadByte()
 {
 	uint8_t value = *reinterpret_cast< uint8_t* >( PatchData );
 	PatchData += sizeof( uint8_t );
+
+	Position += sizeof( uint8_t );
+
 	return value;
 }
 
@@ -173,16 +155,21 @@ std::string FileMapper::ReadString( size_t length )
 {
 	std::string bytes( PatchData, length );
 	PatchData += length;
+
+	Position += length;
+
 	return bytes;
 }
 
-void FileMapper::ReadBytes( byte *Data, size_t length )
+void FileMapper::ReadBytes( char *Data, size_t length )
 {
 	if( PatchData + length > PatchData + fileSize )
 		throw std::runtime_error( "Смещение больше чем файл патча" );
 
 	memcpy( Data, PatchData, length );
 	PatchData += length;
+
+	Position += length;
 }
 //////////////////////////////////////////////////////////////////////////
 bool FileMapper::FileExists( const wchar_t* fname )

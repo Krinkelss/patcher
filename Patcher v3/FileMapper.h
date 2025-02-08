@@ -10,16 +10,16 @@ public:
 	~FileMapper();
 	void Init( const wchar_t *filePath, bool writeAccess = false );
 	char* GetView();
+	uint32_t GetPosition();
 	DWORD GetFileSize();
-	void WriteData( byte *pData, size_t bytes );
-	void ReadData( byte *Data, size_t Offset, size_t Len );
+	void ReadData( char *Data, size_t Offset, size_t Len );
 
 public:
 	/*template <typename T>
 	T Read();*/
 	uint8_t ReadByte();
 	std::string ReadString( size_t length );
-	void ReadBytes( byte *Data, size_t length );
+	void ReadBytes( char *Data, size_t length );
 
 public:
 	template <typename T>
@@ -51,6 +51,7 @@ private:
 	PVOID pData;
 	UINT CurrentOffset = 0;	
 	bool EndWork;
+	uint32_t Position = 0;
 
 private:
 	DWORD mappingAccess = PAGE_READONLY;

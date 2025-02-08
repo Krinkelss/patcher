@@ -18,11 +18,11 @@ public:
 	uint32_t Version = 0x01;
 
 public:
-	// Данные входящего файла
+	// Данные оригинального файла
 	std::string baseFileHashAlgorithm;	// MD5 или другой алгоритм
 	std::string baseFileHash;			// Строка в base64
 		
-	// Данные выходящего файла
+	// Данные патченного файла
 	std::string expectedFileHashAlgorithm;	// MD5 или другой алгоритм
 	std::string expectedFileHash;			// Строка в base64
 };

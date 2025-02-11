@@ -7,6 +7,7 @@
 #include "TmpFolder.h"
 #include "base64_decode.h"
 #include "md5.h"
+#include "Options.h"
 
 #pragma comment(lib, "version.lib" )
 #pragma warning(disable : 4996)
@@ -16,14 +17,17 @@
 //#define MD5_IN		2	// Проверка только входящих файлов
 //#define MD5_ACS		3	// Проверить только Assembly-CSharp.dll
 
-constexpr uint32_t MD5_OFF	= 0; // Выкл
-constexpr uint32_t MD5_ALL	= 1; // Проверка всех файлов
-constexpr uint32_t MD5_ACS	= 2; // Проверить только Assembly-CSharp.dll
+//constexpr uint32_t MD5_OFF	= 0; // Выкл
+//constexpr uint32_t MD5_ALL	= 1; // Проверка всех файлов
+//constexpr uint32_t MD5_ACS	= 2; // Проверить только Assembly-CSharp.dll
 
-constexpr uint32_t TWOGIGA = 2 * 1024 * 1024 * 1024;	// 2 гигабайта
+constexpr uint32_t TWOGIGA = ( unsigned )2 * 1024 * 1024 * 1024;	// 2 гигабайта
 
 uint32_t FilesProcessed = 1;	// Сколько файлов обработано
-uint32_t AllFiles = 0;				// Всего файлов для обработки
+uint32_t AllFiles = 0;			// Всего файлов для обработки
+
+uint32_t md5_check;				// Проверка эш файлов
+uint32_t print_console;			// Вывод информации в консоль
 
 bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, DWORD MD5Check );
 void FreeAllMem( char * memBuf );
@@ -50,17 +54,22 @@ int main( int argc, char* argv[] )
 
 	wprintf( L"Patcher v3[%d.%d (%d)]: Copyright (c) 2025 Krinkels [krinkels.org]\r\n", dwMajorVersion, dwMinorVersion, dwBuild );
 //////////////////////////////////////////////////////////////////////////
-		
+	
+	Options Opt;
+	Opt.get_arguments( argc, argv );
 
 	//! Не забыть обработать переменную
-	int md5_check = MD5_ACS;
+	//int md5_check = MD5_ACS;
+	md5_check = Opt.md5_check;
+	print_console = Opt.print_console;
+
 	
 	//Выберем папку с игрой	
 	SelectDialog sDialog;
 	HRESULT hr = sDialog.PickFolder( L"Выберите папку с игрой" );
 	if( FAILED( hr ) )
 	{
-		wprintf( L"12312 Папка не выбрана, выходим\n" );
+		wprintf( L"Папка не выбрана, выходим\n" );
 		return 0;
 	}
 	std::wstring GamePath = sDialog.GetResult();	// Путь к папке с игрой
@@ -69,7 +78,7 @@ int main( int argc, char* argv[] )
 	hr = sDialog.PickFile( L"Выберите файл с патчем" );
 	if( FAILED( hr ) )
 	{
-		wprintf( L"12312 Папка не выбрана, выходим\n" );
+		wprintf( L"Папка не выбрана, выходим\n" );
 		return 0;
 	}
 	std::wstring PatchFile = sDialog.GetResult();	// Путь к файлу с патчем
@@ -398,14 +407,13 @@ void FreeAllMem( char * memBuf )
 // @param (std::filesystem::path) TmpPath - Путь к временной папке
 // @param (std::filesystem::path) sData - Путь к файлу с патчем
 // @param (char *) memBuf - Общий буфер для работы с файлами
-// @param (DWORD) md5_check - Проверка файлов MD5 хэш суммой. Не проверять, часть или все
+// @param (DWORD) MD5Check - Проверка файлов MD5 хэш суммой. Не проверять, часть или все
 bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, DWORD MD5Check )
 {
-	size_t result;
-	int64_t start, length;
+	long start;
+	int64_t length;
 	uint32_t b;
-	uint32_t soFar;
-	uint32_t WriteData = 0, readData = 0;
+	size_t WriteData = 0, readData = 0;
 	uint32_t progressPercentage = -1;
 	
 	// Получим относительный путь к файлу с патчем
@@ -463,7 +471,6 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 
 	if( PatchFile.expectedFileHashAlgorithm != "MD5" )
 		MD5Check = MD5_OFF;	// В json массиве задан какой то другой алгорит хэширования, значит, в дальнейшем, с MD5 работать не будем
-	//? А нужно ли, в дальнейшем, патчить файл?
 
 	FILE *FileBeforeFix;	// Файл который нужно патчить
 	FILE *FileAfterFix;		// Файл который получится после патча
@@ -534,7 +541,6 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 		if( b == PatchFile.DataCommand )
 		{
 			length = ( int64_t )PatchFile.Read<int64_t>();
-			soFar = 0;
 			
 			PatchFile.ReadBytes( memBuf, length );
 
@@ -567,10 +573,10 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 		uint32_t percent = PatchFile.GetPosition() * 100 / PatchFile.GetFileSize();
 
 
-		if( progressPercentage != percent && percent > 0 && percent % 10 == 0 )
+		if( progressPercentage != percent && print_console == PRINT_CONSOLE_MAX/* && percent > 0 && percent % 10 == 0*/ )
 		{
 			progressPercentage = percent;
-			wprintf( L"%d%%\n", percent );
+			wprintf( L"\r%d%%", percent );
 		}
 	}
 
@@ -589,7 +595,18 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 			throw std::runtime_error( "Хэш файла " + std::filesystem::path( fPatch ).filename().string() + " и хэш в файле патча не совпадают\nДальнейшая работа невозможна" );
 		}
 
-		printf( "Хэш файла и хэш из патча совпадают\n" );
+		if( print_console == PRINT_CONSOLE_MAX )
+		{
+			wprintf( L"\r100%%\n" );
+
+			// Выводим MD5-хэш в виде шестнадцатеричной строки
+			wprintf( L"MD5-хэш файла: " );
+			for( int i = 0; i < 16; i++ )
+			{
+				printf( "%02x", md5Digest[ i ] );
+			}
+			wprintf( L"Хэш файла и хэш из патча совпадают\n" );
+		}
 	}
 
 	fclose( FileAfterFix );

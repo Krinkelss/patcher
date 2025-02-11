@@ -42,8 +42,7 @@ void FileMapper::Init( const wchar_t *filePath, bool writeAccess )
 		throw std::runtime_error( "Failed to open file." );
 	}
 
-	int TT = fGetFileSize( filePath );
-	fileSize = std::filesystem::file_size( filePath );
+	fileSize = ( DWORD )std::filesystem::file_size( filePath );
 	if( fileSize == INVALID_FILE_SIZE && writeAccess == false )
 	{
 		throw std::runtime_error( "Не могу получить размер файла:\n" + FileName );

@@ -3,6 +3,8 @@
 #include <filesystem>
 #include "Utils.h"
 #include "miniz/miniz.h"
+#include <curl/curl.h>
+#include <nlohmann/json.hpp>
 
 // Получить версию файла
 std::wstring GetFileVersion( const std::wstring& filePath )
@@ -207,7 +209,7 @@ std::vector<std::wstring> SearchFilesInDirectory( const std::wstring& directory,
 
 // Парсинг json строки из памяти
 //! по возможности переделать
-std::unordered_map<std::string, std::string> ParseJson( const std::string& jsonString )
+std::unordered_map<std::string, std::string> ParseJson2( const std::string& jsonString )
 {
 	std::unordered_map<std::string, std::string> result;
 	size_t pos = 0;
@@ -234,4 +236,213 @@ std::unordered_map<std::string, std::string> ParseJson( const std::string& jsonS
 		pos = valueEnd + 1;
 	}
 	return result;
+}
+
+std::unordered_map<std::string, std::string> ParseJson( const std::string& jsonString )
+{
+	std::unordered_map<std::string, std::string> result;
+	auto j = nlohmann::json::parse( jsonString );
+
+	for( auto&[ key, value ] : j.items() )
+	{
+		result[ key ] = value;
+	}
+
+	return result;
+}
+
+/*#include <nlohmann/json.hpp>
+#include <curl/curl.h>
+
+
+
+size_t WriteCallback( void* contents, size_t size, size_t nmemb, void* userp )
+{
+	( ( std::string* )userp )->append( ( char* )contents, size * nmemb );
+	return size * nmemb;
+}
+
+std::string GetLatestRelease( const std::string& repo )
+{
+	CURL* curl;
+	CURLcode res;
+	std::string readBuffer;
+
+	curl = curl_easy_init();
+	if( curl )
+	{
+		std::string url = "https://api.github.com/repos/" + repo + "/releases/latest";
+		curl_easy_setopt( curl, CURLOPT_URL, url.c_str() );
+		curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, WriteCallback );
+		curl_easy_setopt( curl, CURLOPT_WRITEDATA, &readBuffer );
+		curl_easy_setopt( curl, CURLOPT_USERAGENT, "libcurl-agent/1.0" );
+		res = curl_easy_perform( curl );
+		curl_easy_cleanup( curl );
+
+		if( res != CURLE_OK )
+		{
+			throw std::runtime_error( "Failed to fetch release info: " + std::string( curl_easy_strerror( res ) ) );
+		}
+	}
+
+	return readBuffer;
+}*/
+
+std::wstring GetAppVersion()
+{
+	// Получаем путь к исполняемому файлу
+	wchar_t filePath[ MAX_PATH ];
+	GetModuleFileName( NULL, filePath, MAX_PATH );
+
+	// Получаем размер версии информации
+	DWORD handle;
+	DWORD size = GetFileVersionInfoSize( filePath, &handle );
+	if( size == 0 )
+	{
+		return L"Не удалось получить размер информации о версии.";
+	}
+
+	// Выделяем буфер для хранения информации о версии
+	std::vector<char> versionInfo( size );
+	if( !GetFileVersionInfo( filePath, handle, size, versionInfo.data() ) )
+	{
+		return L"Не удалось получить информацию о версии.";
+	}
+
+	// Извлекаем информацию о версии
+	VS_FIXEDFILEINFO* fileInfo;
+	UINT len;
+	if( !VerQueryValueA( versionInfo.data(), "\\", reinterpret_cast< LPVOID* >( &fileInfo ), &len ) )
+	{
+		return L"Не удалось извлечь информацию о версии.";
+	}
+
+	// Форматируем версию в строку
+	std::wstring version = std::to_wstring( ( fileInfo->dwFileVersionMS >> 16 ) & 0xffff ) + L"." +
+		std::to_wstring( ( fileInfo->dwFileVersionMS >> 0 ) & 0xffff ) + L".";
+	/*std::wstring version = std::to_wstring( ( fileInfo->dwFileVersionMS >> 16 ) & 0xffff ) + L"." +
+		std::to_wstring( ( fileInfo->dwFileVersionMS >> 0 ) & 0xffff ) + L"." +
+		std::to_wstring( ( fileInfo->dwFileVersionLS >> 16 ) & 0xffff ) + L"." +
+		std::to_wstring( ( fileInfo->dwFileVersionLS >> 0 ) & 0xffff );*/
+
+	return version;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Сравнение версий
+std::vector<int> splitVersion( const std::string& version )
+{
+	std::vector<int> parts;
+	size_t start = 0;
+	size_t end = version.find( '.' );
+	while( end != std::string::npos )
+	{
+		parts.push_back( std::stoi( version.substr( start, end - start ) ) );
+		start = end + 1;
+		end = version.find( '.', start );
+	}
+	parts.push_back( std::stoi( version.substr( start ) ) );
+	return parts;
+}
+
+// @param (std::string) CurrentVersion - Текущая версия
+// @param (std::string) NewVersion - Новая версия
+// @return (bool) true - true то новая версия больше чем текущая
+bool isVersionGreater( const std::string& CurrentVersion, const std::string& NewVersion )
+{
+	std::vector<int> v1 = splitVersion( CurrentVersion );
+	std::vector<int> v2 = splitVersion( NewVersion );
+
+	size_t maxLength = max( v1.size(), v2.size() );
+	v1.resize( maxLength, 0 );
+	v2.resize( maxLength, 0 );
+
+	for( size_t i = 0; i < maxLength; ++i )
+	{
+		if( v1[ i ] > v2[ i ] )
+		{
+			return false;
+		}
+		else if( v1[ i ] < v2[ i ] )
+		{
+			return true;
+		}
+	}
+	return false;
+}
+//////////////////////////////////////////////////////////////////////////
+
+size_t WriteCallback( void* contents, size_t size, size_t nmemb, void* userp )
+{
+	( ( std::string* )userp )->append( ( char* )contents, size * nmemb );
+	return size * nmemb;
+}
+
+bool GetLatestRelease( std::string Ver )
+{
+	CURL* curl;
+	CURLcode res;
+	std::string releaseInfo;
+
+	// Попробуем получить новую версию
+	curl = curl_easy_init();
+	if( curl )
+	{
+		std::string url = "https://api.github.com/repos/Krinkelss/patcher-v3/releases/latest";
+		curl_easy_setopt( curl, CURLOPT_URL, url.c_str() );
+		curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, WriteCallback );
+		curl_easy_setopt( curl, CURLOPT_WRITEDATA, &releaseInfo );
+		curl_easy_setopt( curl, CURLOPT_USERAGENT, "libcurl-agent/1.0" );
+		res = curl_easy_perform( curl );
+
+		if( res != CURLE_OK )
+		{
+			throw std::runtime_error( "Ошибка получения обновления: " + std::string( curl_easy_strerror( res ) ) );
+		}
+		else
+		{
+			long http_code = 0;
+			curl_easy_getinfo( curl, CURLINFO_RESPONSE_CODE, &http_code );
+			if( http_code == 404 )
+			{
+				//std::cerr << "Error 404: Not Found" << std::endl;
+				//std::cerr << "Response: " << readBuffer << std::endl;
+
+				throw std::runtime_error( "Ошибка 404, ничего не найдено" );
+			}
+		}
+		curl_easy_cleanup( curl );
+	}
+
+	// Получили. Теперь получим версию
+	nlohmann::json jsonData = nlohmann::json::parse( releaseInfo );
+	
+	/*if( !jsonData[ key_version ].empty() )
+	{
+		throw std::runtime_error( "Ключ " + key_version + " не найден" );
+	}*/
+
+	// Версия последнего релиза
+	std::string NewVer = jsonData[ "tag_name" ];
+
+	// Теперь сравним версию релиза и версию текущей программы
+	if( isVersionGreater( Ver, NewVer ) == true )
+	{ // Можно обновляться
+		// Получаем ссылку для скачивания релиза	
+		std::string key_url = "browser_download_url";
+		// Проверяем, существует ли ключ в массиве assets
+		if( jsonData.contains( "assets" ) && !jsonData[ "assets" ].empty() )
+		{
+			// Получаем первый элемент массива assets
+			nlohmann::json asset = jsonData[ "assets" ][ 0 ];
+
+			// Проверяем наличие ключа browser_download_url
+			if( asset.contains( key_url ) == false )
+			{
+				throw std::runtime_error( "Ключ " + key_url + " не найден" );
+			}
+
+
+		}
+	}
 }

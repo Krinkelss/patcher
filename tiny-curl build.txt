@@ -1,0 +1,5 @@
+"Путь к visual studio\2017\Professional\VC\Auxiliary\Build\vcvarsall.bat" x64
+set RTLIBCFG=static
+cd Путь к сорцам\tiny-curl-8.4.0\winbuild
+nmake /f Makefile.vc mode=static vc=15 debug=no MACHINE=x64
+nmake /f Makefile.vc mode=static vc=15 debug=yes MACHINE=x64

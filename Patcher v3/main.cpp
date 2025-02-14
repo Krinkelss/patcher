@@ -35,26 +35,14 @@ void FreeAllMem( char * memBuf );
 int main( int argc, char* argv[] )
 {	
 	setlocale( LC_ALL, "Russian" );
-	DWORD dwVersion = 0;
-	DWORD dwMajorVersion = 0;
-	DWORD dwMinorVersion = 0;
-	DWORD dwBuild = 0;
+	
+	std::wstring version = GetAppVersion();
 
-	dwVersion = GetVersion();
-
-	// Get the Windows version.
-
-	dwMajorVersion = ( DWORD )( LOBYTE( LOWORD( dwVersion ) ) );
-	dwMinorVersion = ( DWORD )( HIBYTE( LOWORD( dwVersion ) ) );
-
-	// Get the build number.
-
-	if( dwVersion < 0x80000000 )
-		dwBuild = ( DWORD )( HIWORD( dwVersion ) );
-
-	wprintf( L"Patcher v3[%d.%d (%d)]: Copyright (c) 2025 Krinkels [krinkels.org]\r\n", dwMajorVersion, dwMinorVersion, dwBuild );
+	wprintf( L"Patcher v3[%s]: Copyright (c) 2025 Krinkels [krinkels.org]\r\n", version.c_str() );
 //////////////////////////////////////////////////////////////////////////
 	
+
+
 	Options Opt;
 	Opt.get_arguments( argc, argv );
 
@@ -63,6 +51,7 @@ int main( int argc, char* argv[] )
 	md5_check = Opt.md5_check;
 	print_console = Opt.print_console;
 
+	//GetLatestRelease( "123" );
 	
 	//Выберем папку с игрой	
 	SelectDialog sDialog;
@@ -243,9 +232,11 @@ int main( int argc, char* argv[] )
 
 	AllFiles = mPatchList.size();
 
+	wprintf( L"Будет обработано файлов: %d\n", AllFiles );
+
 	// В последнее время появляются какие то проблемы с Assembly-CSharp.dll
 	// По этому, если задана MD5_ACS, то первым делом проверим эту библиотечку
-	if( md5_check == MD5_ACS )
+	if( md5_check == MD5_ACS || md5_check == MD5_ALL )
 	{		
 		// Ищем
 		auto it = std::find_if( mPatchList.begin(), mPatchList.end(), []( const std::wstring& file )
@@ -280,7 +271,7 @@ int main( int argc, char* argv[] )
 			try
 			{
 				const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
-				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath + L"_copy", copyOptions );	//! Для отладки
+				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath, copyOptions );	//! Для отладки
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
@@ -305,13 +296,11 @@ int main( int argc, char* argv[] )
 			// Ошибки не случилось, можно работать с файлом дальше
 			// Удалим значение из вектора
 			mPatchList.erase( it );
-		}
+		}		
 	}
 		
 	for( auto sData : mPatchList )
 	{
-		//wprintf( L"[%d/%d]: %s\n", FilesProcessed++, AllFiles, std::filesystem::path( sData ).replace_extension().wstring() );
-
 		if( std::filesystem::path( sData ).extension().compare( L".patch" ) == 0 ) // То бишь расширение файла равно .patch
 		{// Вот и файл патча
 
@@ -341,7 +330,7 @@ int main( int argc, char* argv[] )
 			try
 			{
 				const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
-				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath + L"_copy", copyOptions );	//! Для отладки
+				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath, copyOptions );	//! Для отладки
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
@@ -371,12 +360,16 @@ int main( int argc, char* argv[] )
 
 			try
 			{
-				const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
-				std::filesystem::copy( sData, GamePath + L"\\" + relativePath + L"_copy", copyOptions ); //! Для отладки
+				//const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
+				//std::filesystem::copy( sData, GamePath + L"\\" + relativePath, copyOptions ); //! Для отладки
+
+				std::filesystem::path FilePath = GamePath + L"\\" + relativePath;
+				std::filesystem::create_directories( FilePath.parent_path() );
+				std::filesystem::copy( sData, FilePath, std::filesystem::copy_options::overwrite_existing );
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
-				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + sData ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
 				FreeAllMem( memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
@@ -386,6 +379,8 @@ int main( int argc, char* argv[] )
 				FreeAllMem( memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
+
+			wprintf( L"Скопирован файл [%d/%d]: %s\n", FilesProcessed++, AllFiles, relativePath.c_str() );
 		}
 	}
 
@@ -422,8 +417,6 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	// Оригинальный файл в папке с игрой
 	std::filesystem::path OriginalFile = relativePath;
 	OriginalFile.replace_extension();
-
-	wprintf( L"[%d/%d]: %s\n", FilesProcessed++, AllFiles, OriginalFile.wstring().c_str() );
 
 	// Так, теперь можно начать работать с файлами
 	FileMapper PatchFile;			// Файл с патчем, .patch
@@ -611,6 +604,8 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 
 	fclose( FileAfterFix );
 	fclose( FileBeforeFix );
+
+	wprintf( L"Обработан файл [%d/%d]: %s\n", FilesProcessed++, AllFiles, OriginalFile.wstring().c_str() );
 
 	return true;
 }

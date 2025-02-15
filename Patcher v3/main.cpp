@@ -45,7 +45,7 @@ int main( int argc, char* argv[] )
 
 	Options Opt;
 	Opt.get_arguments( argc, argv );
-
+		
 	//! Не забыть обработать переменную
 	//int md5_check = MD5_ACS;
 	md5_check = Opt.md5_check;
@@ -598,7 +598,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 			{
 				printf( "%02x", md5Digest[ i ] );
 			}
-			wprintf( L"Хэш файла и хэш из патча совпадают\n" );
+			wprintf( L"\nХэш файла и хэш из патча совпадают\n" );
 		}
 	}
 

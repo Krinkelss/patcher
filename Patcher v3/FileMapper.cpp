@@ -1,10 +1,10 @@
-#include <string>
+п»ї#include <string>
 #include "FileMapper.h"
 #include <filesystem>
 
-// Инициализация работы с файлами
-// @param ( wchar_t *)filePath - Путь к файлу
-// @param ( bool )writeAccess - Чтение или запись. Если true то будет запись в файл, при этом создавстся новый
+// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЂР°Р±РѕС‚С‹ СЃ С„Р°Р№Р»Р°РјРё
+// @param ( wchar_t *)filePath - РџСѓС‚СЊ Рє С„Р°Р№Р»Сѓ
+// @param ( bool )writeAccess - Р§С‚РµРЅРёРµ РёР»Рё Р·Р°РїРёСЃСЊ. Р•СЃР»Рё true С‚Рѕ Р±СѓРґРµС‚ Р·Р°РїРёСЃСЊ РІ С„Р°Р№Р», РїСЂРё СЌС‚РѕРј СЃРѕР·РґР°РІСЃС‚СЃСЏ РЅРѕРІС‹Р№
 void FileMapper::Init( const wchar_t *filePath, bool writeAccess )
 {
 	DWORD access = GENERIC_READ;
@@ -23,12 +23,12 @@ void FileMapper::Init( const wchar_t *filePath, bool writeAccess )
 
 	if( FileExists( filePath ) == false && writeAccess == false )
 	{
-		throw std::runtime_error( "Файл " + FileName + " не найден" );
+		throw std::runtime_error( "Р¤Р°Р№Р» " + FileName + " РЅРµ РЅР°Р№РґРµРЅ" );
 	}
 
 	/*if( FileReadOnly( filePath ) == true && writeAccess == false )
 	{
-		throw WindowsException( L"Файл только для чтения", GetLastError() );
+		throw WindowsException( L"Р¤Р°Р№Р» С‚РѕР»СЊРєРѕ РґР»СЏ С‡С‚РµРЅРёСЏ", GetLastError() );
 	}*/
 
 	hFile = CreateFileW( filePath, access, 0, NULL, creationDisposition, FILE_ATTRIBUTE_NORMAL, NULL );
@@ -45,7 +45,7 @@ void FileMapper::Init( const wchar_t *filePath, bool writeAccess )
 	fileSize = ( DWORD )std::filesystem::file_size( filePath );
 	if( fileSize == INVALID_FILE_SIZE && writeAccess == false )
 	{
-		throw std::runtime_error( "Не могу получить размер файла:\n" + FileName );
+		throw std::runtime_error( "РќРµ РјРѕРіСѓ РїРѕР»СѓС‡РёС‚СЊ СЂР°Р·РјРµСЂ С„Р°Р№Р»Р°:\n" + FileName );
 	}
 	if( fileSize == 0 )
 		fileSize = 1;
@@ -126,7 +126,7 @@ DWORD FileMapper::GetFileSize()
 void FileMapper::ReadData( char *Data, size_t Offset, size_t Len )
 {
 	if( Offset >= fileSize )
-		throw std::runtime_error( "Смещение больше чем сам файл:\n" + FileName );
+		throw std::runtime_error( "РЎРјРµС‰РµРЅРёРµ Р±РѕР»СЊС€Рµ С‡РµРј СЃР°Рј С„Р°Р№Р»:\n" + FileName );
 
 	memcpy( Data, pView + Offset, Len );
 }
@@ -163,7 +163,7 @@ std::string FileMapper::ReadString( size_t length )
 void FileMapper::ReadBytes( char *Data, size_t length )
 {
 	if( PatchData + length > PatchData + fileSize )
-		throw std::runtime_error( "Смещение больше чем файл:\n" + FileName );
+		throw std::runtime_error( "РЎРјРµС‰РµРЅРёРµ Р±РѕР»СЊС€Рµ С‡РµРј С„Р°Р№Р»:\n" + FileName );
 
 	memcpy( Data, PatchData, length );
 	PatchData += length;

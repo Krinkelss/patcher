@@ -1,4 +1,4 @@
-#include "md5.h"
+﻿#include "md5.h"
 
 #define MD5_UPDATE_BLOCKS(p) Md5_UpdateBlocks
 #define SetUi32(p, v) { byte *_ppp_ = (byte *)(p); UINT _vvv_ = (v); \

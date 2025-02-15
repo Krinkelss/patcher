@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <string>
@@ -12,11 +12,11 @@ public:
 	~SelectDialog();
 	HRESULT PickFolder( const wchar_t *pszTitle );
 	HRESULT PickFile( const wchar_t *pszTitle );
+	HRESULT SaveFileDialog( const wchar_t *pszTitle );
 	std::wstring GetResult();
 
 private:
 	void GetExePath( wchar_t *mPath );
-	std::wstring GetShortPath( const std::wstring& longPath );
 
 private:
 	IFACEMETHODIMP QueryInterface( REFIID riid, void **ppv );

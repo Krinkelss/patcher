@@ -171,6 +171,7 @@
     <ClCompile Include="miniz\miniz.c" />
     <ClCompile Include="SelectDialog.cpp" />
     <ClCompile Include="TmpFolder.cpp" />
+    <ClCompile Include="Update.cpp" />
     <ClCompile Include="Utild.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -183,6 +184,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="SelectDialog.h" />
     <ClInclude Include="TmpFolder.h" />
+    <ClInclude Include="Update.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>

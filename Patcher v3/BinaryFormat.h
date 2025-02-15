@@ -1,12 +1,12 @@
-#pragma once
+п»ї#pragma once
 #include<windows.h>
 #include <unordered_map>
 //#include "FileMapper.h"
 
-//#define MD5_OFF		0	// Выкл
-//#define MD5_FULL		1	// Проверка всех файлов
-//#define MD5_IN		2	// Проверка только входящих файлов
-//#define MD5_ACS		3	// Проверить только Assembly-CSharp.dll
+//#define MD5_OFF		0	// Р’С‹РєР»
+//#define MD5_FULL		1	// РџСЂРѕРІРµСЂРєР° РІСЃРµС… С„Р°Р№Р»РѕРІ
+//#define MD5_IN		2	// РџСЂРѕРІРµСЂРєР° С‚РѕР»СЊРєРѕ РІС…РѕРґСЏС‰РёС… С„Р°Р№Р»РѕРІ
+//#define MD5_ACS		3	// РџСЂРѕРІРµСЂРёС‚СЊ С‚РѕР»СЊРєРѕ Assembly-CSharp.dll
 
 
 class BinaryFormat
@@ -18,11 +18,11 @@ public:
 	uint32_t Version = 0x01;
 
 public:
-	// Данные оригинального файла
-	std::string baseFileHashAlgorithm;	// MD5 или другой алгоритм
-	std::string baseFileHash;			// Строка в base64
+	// Р”Р°РЅРЅС‹Рµ РѕСЂРёРіРёРЅР°Р»СЊРЅРѕРіРѕ С„Р°Р№Р»Р°
+	std::string baseFileHashAlgorithm;	// MD5 РёР»Рё РґСЂСѓРіРѕР№ Р°Р»РіРѕСЂРёС‚Рј
+	std::string baseFileHash;			// РЎС‚СЂРѕРєР° РІ base64
 		
-	// Данные патченного файла
-	std::string expectedFileHashAlgorithm;	// MD5 или другой алгоритм
-	std::string expectedFileHash;			// Строка в base64
+	// Р”Р°РЅРЅС‹Рµ РїР°С‚С‡РµРЅРЅРѕРіРѕ С„Р°Р№Р»Р°
+	std::string expectedFileHashAlgorithm;	// MD5 РёР»Рё РґСЂСѓРіРѕР№ Р°Р»РіРѕСЂРёС‚Рј
+	std::string expectedFileHash;			// РЎС‚СЂРѕРєР° РІ base64
 };

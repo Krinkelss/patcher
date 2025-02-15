@@ -42,6 +42,9 @@
     <ClCompile Include="miniz\miniz.c">
       <Filter>miniz</Filter>
     </ClCompile>
+    <ClCompile Include="Update.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64_decode.h">
@@ -72,6 +75,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Update.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

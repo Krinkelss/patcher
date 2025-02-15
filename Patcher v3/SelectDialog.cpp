@@ -1,9 +1,15 @@
-#include "SelectDialog.h"
+Ôªø#include "SelectDialog.h"
 #include <stdexcept>
+#include <atlbase.h>
+
+const COMDLG_FILTERSPEC c_rgOpenTypes[] =
+{
+	{L"–§–∞–π–ª –ø–∞—Ç—á–∞ (*.update)",		L"*.update"}
+};
 
 const COMDLG_FILTERSPEC c_rgSaveTypes[] =
 {
-	{L"‘‡ÈÎ Ô‡Ú˜‡ (*.update)",		L"*.update"}
+	{L"–§–∞–π–ª –ø–∞—Ç—á–∞ (*.zip)",		L"*.zip"}
 };
 
 SelectDialog::SelectDialog()
@@ -18,9 +24,10 @@ SelectDialog::~SelectDialog()
 	CoUninitialize();
 }
 
+// –í—ã–±–æ—Ä –ø–∞–ø–∫–∏
 HRESULT SelectDialog::PickFolder( const wchar_t *pszTitle )
 {
-	IFileOpenDialog *pfd;
+	CComPtr<IFileOpenDialog> pfd;
 	HRESULT hr = CoCreateInstance( CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS( &pfd ) );
 	if( SUCCEEDED( hr ) )
 	{
@@ -31,7 +38,7 @@ HRESULT SelectDialog::PickFolder( const wchar_t *pszTitle )
 			DWORD dwOptions;
 			if( SUCCEEDED( pfd->GetOptions( &dwOptions ) ) )
 			{
-				// ”ÒÚ‡Ì‡‚ÎË‚‡ÂÏ ÓÔˆË˛ ‚˚·Ó‡ Ô‡ÔÓÍ
+				// –£—Å—Ç–∞–Ω–∞–≤–ª–∏–≤–∞–µ–º –æ–ø—Ü–∏—é –≤—ã–±–æ—Ä–∞ –ø–∞–ø–æ–∫
 				hr = pfd->SetOptions( dwOptions | FOS_PICKFOLDERS );
 			}
 
@@ -40,7 +47,7 @@ HRESULT SelectDialog::PickFolder( const wchar_t *pszTitle )
 				pfd->SetTitle( pszTitle );
 			}
 
-			IShellItem *pCurFolder = NULL;
+			CComPtr<IShellItem> pCurFolder;
 			wchar_t ExEpath[ _MAX_PATH ];
 			GetExePath( ExEpath );
 
@@ -48,7 +55,6 @@ HRESULT SelectDialog::PickFolder( const wchar_t *pszTitle )
 			if( SUCCEEDED( hr ) )
 			{
 				pfd->SetFolder( pCurFolder );
-				pCurFolder->Release();
 			}
 
 			// the items selected are passed back via OnFileOk()
@@ -57,14 +63,14 @@ HRESULT SelectDialog::PickFolder( const wchar_t *pszTitle )
 
 			pfd->Unadvise( dwCookie );
 		}
-		pfd->Release();
 	}
 	return hr;
 }
 
+// –í—ã–±–æ—Ä —Ñ–∞–π–ª
 HRESULT SelectDialog::PickFile( const wchar_t *pszTitle )
 {
-	IFileOpenDialog *pfd;
+	CComPtr<IFileOpenDialog> pfd;
 	HRESULT hr = CoCreateInstance( CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS( &pfd ) );
 	if( SUCCEEDED( hr ) )
 	{
@@ -75,15 +81,15 @@ HRESULT SelectDialog::PickFile( const wchar_t *pszTitle )
 			DWORD dwOptions;
 			if( SUCCEEDED( pfd->GetOptions( &dwOptions ) ) )
 			{
-				// ”·Ë‡ÂÏ ÓÔˆË˛ FOS_ALLOWMULTISELECT ‰Îˇ ‚˚·Ó‡ ÚÓÎ¸ÍÓ Ó‰ÌÓ„Ó Ù‡ÈÎ‡
+				// –£–±–∏—Ä–∞–µ–º –æ–ø—Ü–∏—é FOS_ALLOWMULTISELECT –¥–ª—è –≤—ã–±–æ—Ä–∞ —Ç–æ–ª—å–∫–æ –æ–¥–Ω–æ–≥–æ —Ñ–∞–π–ª–∞
 				hr = pfd->SetOptions( dwOptions | FOS_ALLNONSTORAGEITEMS );
 			}
 
-			// «‡‰‡∏Ï ÚËÔ˚ ‚˚·Ë‡ÂÏ˚ı Ù‡ÈÎÓ‚
-			hr = pfd->SetFileTypes( ARRAYSIZE( c_rgSaveTypes ), c_rgSaveTypes );
+			// –ó–∞–¥–∞—ë–º —Ç–∏–ø—ã –≤—ã–±–∏—Ä–∞–µ–º—ã—Ö —Ñ–∞–π–ª–æ–≤
+			hr = pfd->SetFileTypes( ARRAYSIZE( c_rgOpenTypes ), c_rgOpenTypes );
 			if( SUCCEEDED( hr ) )
 			{
-				// œÂ‚˚È ˝ÎÂÏÂÌÚ ‚ ÒÔËÒÍÂ
+				// –ü–µ—Ä–≤—ã–π —ç–ª–µ–º–µ–Ω—Ç –≤ —Å–ø–∏—Å–∫–µ
 				hr = pfd->SetFileTypeIndex( 1 );
 				if( SUCCEEDED( hr ) )
 				{
@@ -91,21 +97,12 @@ HRESULT SelectDialog::PickFile( const wchar_t *pszTitle )
 				}
 			}
 
-			/*IFileDialogCustomize* pfdCustomize = nullptr;
-			hr = pfd->QueryInterface( IID_PPV_ARGS( &pfdCustomize ) );
-			if( SUCCEEDED( hr ) )
-			{
-				pfdCustomize->AddCheckButton( FB_CHECKBOX_ID, L" ÓÔËÓ‚‡Ú¸ Ù‡ÈÎ˚ ‚ Ô‡ÔÍÛ?", FALSE );
-				pfdCustomize->MakeProminent( FB_CHECKBOX_ID );
-				pfdCustomize->Release();
-			}*/
-
 			if( pszTitle )
 			{
 				pfd->SetTitle( pszTitle );
 			}
 
-			IShellItem *pCurFolder = nullptr;
+			CComPtr<IShellItem> pCurFolder;
 			wchar_t ExEpath[ _MAX_PATH ];
 			GetExePath( ExEpath );
 
@@ -113,7 +110,6 @@ HRESULT SelectDialog::PickFile( const wchar_t *pszTitle )
 			if( SUCCEEDED( hr ) )
 			{
 				pfd->SetFolder( pCurFolder );
-				pCurFolder->Release();
 			}
 
 			// the items selected are passed back via OnFileOk()
@@ -122,29 +118,61 @@ HRESULT SelectDialog::PickFile( const wchar_t *pszTitle )
 
 			pfd->Unadvise( dwCookie );
 		}
-		pfd->Release();
 	}
+	return hr;
+}
+
+// –ó–∞–¥–∞—Ç—å –∏–º—è —Ñ–∞–π–ª–∞ –¥–ª—è —Å–æ—Ö—Ä–∞–Ω–µ–Ω–∏—è
+HRESULT SelectDialog::SaveFileDialog( const wchar_t *pszTitle )
+{
+	CComPtr<IFileSaveDialog> pfd;
+	HRESULT hr = CoCreateInstance( CLSID_FileSaveDialog, NULL, CLSCTX_ALL, IID_PPV_ARGS( &pfd ) );
+	if( SUCCEEDED( hr ) )
+	{
+		DWORD dwCookie;
+		hr = pfd->Advise( this, &dwCookie );
+		if( SUCCEEDED( hr ) )
+		{
+			// –ó–∞–¥–∞—ë–º —Ç–∏–ø—ã –≤—ã–±–∏—Ä–∞–µ–º—ã—Ö —Ñ–∞–π–ª–æ–≤
+			hr = pfd->SetFileTypes( ARRAYSIZE( c_rgSaveTypes ), c_rgSaveTypes );
+			if( SUCCEEDED( hr ) )
+			{
+				// –ü–µ—Ä–≤—ã–π —ç–ª–µ–º–µ–Ω—Ç –≤ —Å–ø–∏—Å–∫–µ
+				hr = pfd->SetFileTypeIndex( 1 );
+				if( SUCCEEDED( hr ) )
+				{
+					hr = pfd->SetDefaultExtension( L"*.zip" );
+				}
+			}
+
+			if( pszTitle )
+			{
+				pfd->SetTitle( pszTitle );
+			}
+
+			// –£—Å—Ç–∞–Ω–æ–≤–∫–∞ –ø–∞–ø–∫–∏ –ø–æ —É–º–æ–ª—á–∞–Ω–∏—é
+			CComPtr<IShellItem> pDefaultFolder;
+			wchar_t ExEpath[ _MAX_PATH ];
+			GetExePath( ExEpath );
+			hr = SHCreateItemFromParsingName( ExEpath, NULL, IID_PPV_ARGS( &pDefaultFolder ) );
+			if( SUCCEEDED( hr ) )
+			{
+				pfd->SetFolder( pDefaultFolder );
+			}
+
+			hr = pfd->Show( NULL );
+			
+			pfd->Unadvise( dwCookie );
+		}
+	}
+
+	CoUninitialize();
 	return hr;
 }
 
 std::wstring SelectDialog::GetResult()
 {
-	//return GetShortPath( Result );
 	return Result;
-}
-
-std::wstring SelectDialog::GetShortPath( const std::wstring& longPath )
-{
-	DWORD bufferSize = GetShortPathNameW( longPath.c_str(), NULL, 0 );
-	if( bufferSize == 0 )
-	{
-		throw std::runtime_error( "Œ¯Ë·Í‡ ÔË ÔÓÎÛ˜ÂÌËË ÍÓÓÚÍÓ„Ó ËÏÂÌË Ù‡ÈÎ‡" );
-	}
-
-	std::wstring shortPath( bufferSize, 0 );
-	GetShortPathNameW( longPath.c_str(), &shortPath[ 0 ], bufferSize );
-
-	return shortPath;
 }
 
 void SelectDialog::GetExePath( wchar_t *mPath )
@@ -173,33 +201,11 @@ IFACEMETHODIMP_( ULONG ) SelectDialog::Release() { return 2; }
 
 IFACEMETHODIMP SelectDialog::OnFileOk( IFileDialog *pfd )
 {
-	/*IShellItemArray *psia;
-	HRESULT hr = GetSelectionFromSite( pfd, FOS_PICKFOLDERS & _options, &psia );
-	if( SUCCEEDED( hr ) )
-	{
-		_DoAdd( psia );
-		psia->Release();
-	}*/
-
-	/*IFileOpenDialog *pfod;
+	CComPtr<IFileOpenDialog> pfod;
 	HRESULT hr = pfd->QueryInterface( IID_PPV_ARGS( &pfod ) );
 	if( SUCCEEDED( hr ) )
 	{
-		IShellItemArray *psia;
-		hr = pfod->GetSelectedItems( &psia );
-		if( SUCCEEDED( hr ) )
-		{
-			CreaterFileList( psia );
-			psia->Release();
-		}
-		pfod->Release();
-	}*/
-
-	IFileOpenDialog *pfod;
-	HRESULT hr = pfd->QueryInterface( IID_PPV_ARGS( &pfod ) );
-	if( SUCCEEDED( hr ) )
-	{
-		IShellItem *psi;
+		CComPtr<IShellItem> psi;
 		hr = pfod->GetResult( &psi );
 		if( SUCCEEDED( hr ) )
 		{
@@ -207,13 +213,29 @@ IFACEMETHODIMP SelectDialog::OnFileOk( IFileDialog *pfd )
 			hr = psi->GetDisplayName( SIGDN_FILESYSPATH, &pszFolderPath );
 			if( SUCCEEDED( hr ) )
 			{
-				// —Óı‡ÌˇÂÏ ÔÛÚ¸ Í ‚˚·‡ÌÌÓÈ Ô‡ÔÍÂ
+				// –°–æ—Ö—Ä–∞–Ω—è–µ–º –ø—É—Ç—å –∫ –≤—ã–±—Ä–∞–Ω–Ω–æ–π –ø–∞–ø–∫–µ
 				Result = pszFolderPath;
 				CoTaskMemFree( pszFolderPath );
 			}
-			psi->Release();
 		}
-		pfod->Release();
+	}
+
+	CComPtr<IFileSaveDialog> pFileSave;
+	hr = pfd->QueryInterface( IID_PPV_ARGS( &pFileSave ) );
+	if( SUCCEEDED( hr ) )
+	{
+		CComPtr<IShellItem> pItem;
+		hr = pFileSave->GetResult( &pItem );
+		if( SUCCEEDED( hr ) )
+		{
+			PWSTR pszFilePath = NULL;
+			hr = pItem->GetDisplayName( SIGDN_FILESYSPATH, &pszFilePath );
+			if( SUCCEEDED( hr ) )
+			{
+				Result = pszFilePath;
+				CoTaskMemFree( pszFilePath );
+			}
+		}
 	}
 
 	return S_OK; // S_FALSE keeps the dialog up, return S_OK to allows it to dismiss
@@ -235,7 +257,7 @@ IFACEMETHODIMP SelectDialog::OnFolderChange( IFileDialog * /*pfd*/ )
 IFACEMETHODIMP SelectDialog::OnSelectionChange( IFileDialog *pfd )
 {
 	// Update the text of the Open/Add button here based on the selection
-	IShellItem *psi;
+	CComPtr<IShellItem> psi;
 	HRESULT hr = pfd->GetCurrentSelection( &psi );
 	if( SUCCEEDED( hr ) )
 	{
@@ -243,14 +265,13 @@ IFACEMETHODIMP SelectDialog::OnSelectionChange( IFileDialog *pfd )
 		hr = psi->GetAttributes( SFGAO_FOLDER | SFGAO_STREAM, &attr );
 		if( SUCCEEDED( hr ) && ( SFGAO_FOLDER == attr ) )
 		{
-			pfd->SetOkButtonLabel( L"ŒÚÍ˚Ú¸" );
+			pfd->SetOkButtonLabel( L"–û—Ç–∫—Ä—ã—Ç—å" );
 		}
 		else
 		{
-			pfd->SetOkButtonLabel( L"ƒÓ·‡‚ËÚ¸" );
+			pfd->SetOkButtonLabel( L"–î–æ–±–∞–≤–∏—Ç—å" );
 		}*/
-		pfd->SetOkButtonLabel( L"ŒÚÍ˚Ú¸" );
-		psi->Release();
+		pfd->SetOkButtonLabel( L"–û—Ç–∫—Ä—ã—Ç—å" );
 	}
 	return S_OK;
 }

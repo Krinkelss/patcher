@@ -1,14 +1,14 @@
-#pragma once
+п»ї#pragma once
 #include <windows.h>
 #include <vector>
 #include <filesystem>
 
-constexpr uint32_t MD5_OFF = 0; // Выкл
-constexpr uint32_t MD5_ALL = 1; // Проверка всех файлов
-constexpr uint32_t MD5_ACS = 2; // Проверить только Assembly-CSharp.dll
+constexpr uint32_t MD5_OFF = 0; // Р’С‹РєР»
+constexpr uint32_t MD5_ALL = 1; // РџСЂРѕРІРµСЂРєР° РІСЃРµС… С„Р°Р№Р»РѕРІ
+constexpr uint32_t MD5_ACS = 2; // РџСЂРѕРІРµСЂРёС‚СЊ С‚РѕР»СЊРєРѕ Assembly-CSharp.dll
 
-constexpr uint32_t PRINT_CONSOLE_MIN = 0;	// Выводить основную информацию в консоль
-constexpr uint32_t PRINT_CONSOLE_MAX = 1;	// Выводить всю информацию в консоль
+constexpr uint32_t PRINT_CONSOLE_MIN = 0;	// Р’С‹РІРѕРґРёС‚СЊ РѕСЃРЅРѕРІРЅСѓСЋ РёРЅС„РѕСЂРјР°С†РёСЋ РІ РєРѕРЅСЃРѕР»СЊ
+constexpr uint32_t PRINT_CONSOLE_MAX = 1;	// Р’С‹РІРѕРґРёС‚СЊ РІСЃСЋ РёРЅС„РѕСЂРјР°С†РёСЋ РІ РєРѕРЅСЃРѕР»СЊ
 
 
 class Options
@@ -21,7 +21,7 @@ public:
 	{
 		if( argc < 1 && argc % 2 != 0 )
 		{
-			wprintf( L"Некорректное число аргументов командной строки\n" );
+			wprintf( L"РќРµРєРѕСЂСЂРµРєС‚РЅРѕРµ С‡РёСЃР»Рѕ Р°СЂРіСѓРјРµРЅС‚РѕРІ РєРѕРјР°РЅРґРЅРѕР№ СЃС‚СЂРѕРєРё\n" );
 			return false;
 		}
 
@@ -46,11 +46,8 @@ private:
 				if( args[ i + 1 ] == "md5_all" )
 					md5_check = MD5_ALL;
 				else
-				if( args[ i + 1 ] == "md5_acs" )
-					md5_check = MD5_ACS;
-				else
 				{
-					wprintf( L"Неизвестный параметр: [%s]\n", AnsiToUnicode( args[ i + 1 ] ).c_str() );					
+					wprintf( L"РќРµРёР·РІРµСЃС‚РЅС‹Р№ РїР°СЂР°РјРµС‚СЂ: [%s]\n", AnsiToUnicode( args[ i + 1 ] ).c_str() );					
 					return false;
 				}
 				++i;
@@ -58,24 +55,39 @@ private:
 
 			if( args[ i ] == "-p" )
 			{
-				if( args[ i + 1 ] == "print_min" )
-					print_console = PRINT_CONSOLE_MIN;
-				else
 				if( args[ i + 1 ] == "print_max" )
 					print_console = PRINT_CONSOLE_MAX;
 				else
 				{
-					wprintf( L"Неизвестный параметр: [%s]\n", AnsiToUnicode( args[ i + 1 ] ).c_str() );
+					wprintf( L"РќРµРёР·РІРµСЃС‚РЅС‹Р№ РїР°СЂР°РјРµС‚СЂ: [%s]\n", AnsiToUnicode( args[ i + 1 ] ).c_str() );
 					return false;
 				}
 				++i;
 			}
+
+			if( args[ i ] == "-h" || args[ i ] == "-help" )
+				PrintHelp();
 		}
 
 		return true;
 	}
 
+	void PrintHelp()
+	{
+		wprintf( L"РљР°Рє РїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ: \"Patcher v3.exe\" <РѕРїС†РёРё>\n" );
+		wprintf( L"\n" );
+		wprintf( L"РћРїС†РёРё:\n" );
+		wprintf( L"-h, -help			РџРµС‡Р°С‚СЊ СЃРїСЂР°РІРєРё\n" );
+		wprintf( L"-md5					РџСЂРѕРІРµСЂСЏС‚СЊ С…СЌС€Рё С„Р°Р№Р»РѕРІ РїРѕСЃР»Рµ РѕР±СЂР°Р±РѕС‚РєРё. РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РІРєР»СЋС‡РµРЅР° РїСЂРѕРІРµСЂРєР° С‚РѕР»СЊРєРѕ Assembly-CSharp.dll\n" );
+		wprintf( L"		РџР°СЂР°РјРµС‚СЂС‹:\n" );
+		wprintf( L"			md5_off		РќРµ РїСЂРѕРІРµСЂСЏС‚СЊ С…СЌС€Рё\n" );
+		wprintf( L"			md5_all		РџСЂРѕРІРµСЂСЏС‚СЊ РІСЃРµ С„Р°Р№Р»С‹\n" );
+		wprintf( L"-p					Р’С‹РІРѕРґ РІ РєРѕРЅСЃРѕР»СЊ\n" );
+		wprintf( L"		РџР°СЂР°РјРµС‚СЂС‹:\n" );
+		wprintf( L"			print_max	Р’С‹РІРѕРґ РІ РєРѕРЅСЃРѕР»СЊ СЂР°СЃС€РёСЂРµРЅРЅРѕР№ РёРЅС„РѕСЂРјР°С†РёРё\n" );
+	}
+
 public:
-	uint32_t md5_check = MD5_ACS;					// По умолчанию будет проверка только Assembly-CSharp.dll
-	uint32_t print_console = PRINT_CONSOLE_MIN;		// Вывод информации в консоль. По умолчанию минимальная
+	uint32_t md5_check = MD5_ACS;					// РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ Р±СѓРґРµС‚ РїСЂРѕРІРµСЂРєР° С‚РѕР»СЊРєРѕ Assembly-CSharp.dll
+	uint32_t print_console = PRINT_CONSOLE_MIN;		// Р’С‹РІРѕРґ РёРЅС„РѕСЂРјР°С†РёРё РІ РєРѕРЅСЃРѕР»СЊ. РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РјРёРЅРёРјР°Р»СЊРЅР°СЏ
 };

@@ -1,4 +1,4 @@
-#include "base64_decode.h"
+п»ї#include "base64_decode.h"
 
 static const std::string base64_chars =
 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -55,7 +55,7 @@ std::string base64_decode( std::string const& encoded_string )
 	return binToHex( ret.c_str(), ret.size() );
 }
 
-//Из названия понятно что выполняет функция. Для MD5 хэша
+//РР· РЅР°Р·РІР°РЅРёСЏ РїРѕРЅСЏС‚РЅРѕ С‡С‚Рѕ РІС‹РїРѕР»РЅСЏРµС‚ С„СѓРЅРєС†РёСЏ. Р”Р»СЏ MD5 С…СЌС€Р°
 std::string binToHex( const char* data, size_t length )
 {
 	const char hexDigits[] = "0123456789ABCDEF";
@@ -75,15 +75,15 @@ std::string binToHex( const char* data, size_t length )
 /*std::string binToHex( const std::string &data )
 {
 	std::string hex_output;
-	const char hex_chars[] = "0123456789abcdef"; // Символы для шестнадцатеричного представления
+	const char hex_chars[] = "0123456789abcdef"; // РЎРёРјРІРѕР»С‹ РґР»СЏ С€РµСЃС‚РЅР°РґС†Р°С‚РµСЂРёС‡РЅРѕРіРѕ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёСЏ
 
 	for( unsigned char byte : data )
 	{
-		// Получаем старший и младший нибблы
+		// РџРѕР»СѓС‡Р°РµРј СЃС‚Р°СЂС€РёР№ Рё РјР»Р°РґС€РёР№ РЅРёР±Р±Р»С‹
 		char high_nibble = hex_chars[ ( byte >> 4 ) & 0x0F ];
 		char low_nibble = hex_chars[ byte & 0x0F ];
 
-		// Добавляем символы в результат
+		// Р”РѕР±Р°РІР»СЏРµРј СЃРёРјРІРѕР»С‹ РІ СЂРµР·СѓР»СЊС‚Р°С‚
 		hex_output.push_back( high_nibble );
 		hex_output.push_back( low_nibble );
 	}

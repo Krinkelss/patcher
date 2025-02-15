@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <windows.h>
 
 #define MD5_NUM_BLOCK_WORDS  16

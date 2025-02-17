@@ -261,7 +261,7 @@ IFACEMETHODIMP SelectDialog::OnSelectionChange( IFileDialog *pfd )
 	HRESULT hr = pfd->GetCurrentSelection( &psi );
 	if( SUCCEEDED( hr ) )
 	{
-		/*SFGAOF attr;
+		SFGAOF attr;
 		hr = psi->GetAttributes( SFGAO_FOLDER | SFGAO_STREAM, &attr );
 		if( SUCCEEDED( hr ) && ( SFGAO_FOLDER == attr ) )
 		{
@@ -269,9 +269,9 @@ IFACEMETHODIMP SelectDialog::OnSelectionChange( IFileDialog *pfd )
 		}
 		else
 		{
-			pfd->SetOkButtonLabel( L"Добавить" );
-		}*/
-		pfd->SetOkButtonLabel( L"Открыть" );
+			pfd->SetOkButtonLabel( L"Сохранить" );
+		}
+		//pfd->SetOkButtonLabel( L"Открыть" );
 	}
 	return S_OK;
 }

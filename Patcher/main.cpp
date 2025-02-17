@@ -8,6 +8,7 @@
 #include "base64_decode.h"
 #include "md5.h"
 #include "Options.h"
+#include "Update.h"
 
 #pragma comment(lib, "version.lib" )
 #pragma warning(disable : 4996)
@@ -32,22 +33,32 @@ uint32_t print_console;			// Вывод информации в консоль
 bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, DWORD MD5Check );
 void FreeAllMem( char * memBuf );
 
+
 int main( int argc, char* argv[] )
 {	
 	setlocale( LC_ALL, "Russian" );
 	
 	std::wstring version = GetAppVersion();
 
-	wprintf( L"Patcher v3[%s]: Copyright (c) 2025 Krinkels [krinkels.org]\r\n", version.c_str() );
+	wprintf( L"Patcher [%s]: Copyright (c) 2025 Krinkels [krinkels.org]\r\n", version.c_str() );
 //////////////////////////////////////////////////////////////////////////
 	
-
-
 	Options Opt;
 	Opt.get_arguments( argc, argv );
-		
-	//! Не забыть обработать переменную
-	//int md5_check = MD5_ACS;
+
+	if( Opt.check_update == UPDATE_ON )
+	{
+		try
+		{
+			if( CheckRelease( "1.0" ) == true )
+				return 0;	// Обновились, можно выходить
+		}
+		catch( std::runtime_error& e )
+		{
+			MessageBoxA( nullptr, e.what(), "CheckRelease", MB_ICONERROR );
+		}
+	}
+					
 	md5_check = Opt.md5_check;
 	print_console = Opt.print_console;
 
@@ -208,7 +219,6 @@ int main( int argc, char* argv[] )
 	TmpFolder fTmp;
 
 	wprintf( L"Распаковываем патч\n" );
-	//! Не забыть вернуть
 	if( ExtractZipArchive( PatchFile, fTmp.ReturnTempPath() ) == false )
 		return 0;
 
@@ -271,7 +281,7 @@ int main( int argc, char* argv[] )
 			try
 			{
 				const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
-				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath, copyOptions );	//! Для отладки
+				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath, copyOptions );
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
@@ -330,7 +340,7 @@ int main( int argc, char* argv[] )
 			try
 			{
 				const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
-				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath, copyOptions );	//! Для отладки
+				std::filesystem::copy( GamePath + L"\\123.tmp", GamePath + L"\\" + relativePath, copyOptions );
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
@@ -360,9 +370,6 @@ int main( int argc, char* argv[] )
 
 			try
 			{
-				//const std::filesystem::copy_options copyOptions = std::filesystem::copy_options::overwrite_existing;
-				//std::filesystem::copy( sData, GamePath + L"\\" + relativePath, copyOptions ); //! Для отладки
-
 				std::filesystem::path FilePath = GamePath + L"\\" + relativePath;
 				std::filesystem::create_directories( FilePath.parent_path() );
 				std::filesystem::copy( sData, FilePath, std::filesystem::copy_options::overwrite_existing );

@@ -219,3 +219,43 @@ std::unordered_map<std::string, std::string> ParseJson( const std::string& jsonS
 
 	return result;
 }
+
+std::wstring GetAppVersion()
+{
+	// Получаем путь к исполняемому файлу
+	wchar_t filePath[ MAX_PATH ];
+	GetModuleFileName( NULL, filePath, MAX_PATH );
+
+	// Получаем  азме  ве сии инфо мации
+	DWORD handle;
+	DWORD size = GetFileVersionInfoSize( filePath, &handle );
+	if( size == 0 )
+	{
+		return L"Не удалось получить размер информации о версии.";
+	}
+
+	// Выделяем буфе  для х анения инфо мации о ве сии
+	std::vector<char> versionInfo( size );
+	if( !GetFileVersionInfo( filePath, handle, size, versionInfo.data() ) )
+	{
+		return L"Не удалось получить информации о версии.";
+	}
+
+	// Извлекаем инфо маци  о ве сии
+	VS_FIXEDFILEINFO* fileInfo;
+	UINT len;
+	if( !VerQueryValueA( versionInfo.data(), "\\", reinterpret_cast< LPVOID* >( &fileInfo ), &len ) )
+	{
+		return L"Не удалось извлечь информации о версии.";
+	}
+
+	// Фо мати уем ве си  в ст оку
+	std::wstring version = std::to_wstring( ( fileInfo->dwFileVersionMS >> 16 ) & 0xffff ) + L"." +
+		std::to_wstring( ( fileInfo->dwFileVersionMS >> 0 ) & 0xffff );
+	/*std::wstring version = std::to_wstring( ( fileInfo->dwFileVersionMS >> 16 ) & 0xffff ) + L"." +
+		std::to_wstring( ( fileInfo->dwFileVersionMS >> 0 ) & 0xffff ) + L"." +
+		std::to_wstring( ( fileInfo->dwFileVersionLS >> 16 ) & 0xffff ) + L"." +
+		std::to_wstring( ( fileInfo->dwFileVersionLS >> 0 ) & 0xffff );*/
+
+	return version;
+}

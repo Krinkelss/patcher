@@ -11,4 +11,3 @@ std::vector<std::wstring> SearchAllFilesInDirectory( const std::wstring& directo
 std::vector<std::wstring> SearchFilesInDirectory( const std::wstring& directory, const std::wstring& filePattern );
 std::unordered_map<std::string, std::string> ParseJson( const std::string& jsonString );
 std::wstring GetAppVersion();
-bool GetLatestRelease( std::string Version );

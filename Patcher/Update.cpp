@@ -114,7 +114,7 @@ bool CheckRelease( std::string Ver )
 	std::string NewVer = jsonData[ "tag_name" ];
 
 	//! Не забыть вернуть true
-	if( isVersionGreater( Ver, NewVer ) == false )
+	if( isVersionGreater( Ver, NewVer ) == true )
 	{// Можно обновляться
 		std::string Buf = "Доступна новая версия программы. Скачать?\n\nТекущая версия: " + Ver + "\nДоступная версия: " + NewVer;
 

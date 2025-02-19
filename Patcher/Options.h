@@ -22,14 +22,6 @@ public:
 
 	bool get_arguments( int argc, char* argv[] )
 	{
-		if( argc < 1 && argc % 2 != 0 )
-		{
-			wprintf( L"Некорректное число аргументов командной строки\n" );
-			return false;
-		}
-		if( argc == 2 && ( lstrcmpiA( argv[ 1 ], "-h" ) == 0 || lstrcmpiA( argv[ 1 ], "-help" ) == 0 ) )
-			PrintHelp();
-				
 		std::vector<std::string> args = std::vector<std::string>();
 		for( int i = 1; i < argc; i++ )
 			args.emplace_back( argv[ i ] );
@@ -43,67 +35,42 @@ private:
 	{
 		for( int i = 0; i < args.size(); ++i )
 		{
-			if( args[ i ] == "-md5" )
+			if( args[ i ] == "-h" || args[ i ] == "-help" )
 			{
-				if( args[ i + 1 ] == "md5_off" )
-					md5_check = MD5_OFF;
-				else
-				if( args[ i + 1 ] == "md5_all" )
-					md5_check = MD5_ALL;
-				else
-				{
-					wprintf( L"Неизвестный параметр: [%s]\n", AnsiToUnicode( args[ i + 1 ] ).c_str() );					
-					return false;
-				}
-				++i;
+				PrintHelp();
+				return true;
 			}
 
-			if( args[ i ] == "-p" )
-			{
-				if( args[ i + 1 ] == "print_max" )
-					print_console = PRINT_CONSOLE_MAX;
-				else
-				{
-					wprintf( L"Неизвестный параметр: [%s]\n", AnsiToUnicode( args[ i + 1 ] ).c_str() );
-					return false;
-				}
-				++i;
-			}
+			if( args[ i ] == "-hash0" )
+				md5_check = MD5_OFF;
 
-			if( args[ i ] == "-update" )
-			{
-				if( args[ i + 1 ] == "off" )
-					check_update = UPDATE_OFF;
-				else
-				{
-					wprintf( L"Неизвестный параметр: [%s]\n", AnsiToUnicode( args[ i + 1 ] ).c_str() );
-					return false;
-				}
-				++i;
-			}			
-		}
+			if( args[ i ] == "-hash1" )
+				md5_check = MD5_ALL;
+
+			if( args[ i ] == "-v" )
+				print_console = PRINT_CONSOLE_MAX;
+
+			if( args[ i ] == "-nocheck" )
+				check_update = UPDATE_OFF;
+		}	
 
 		return true;
 	}
 
 	void PrintHelp()
 	{
+		// Дизайн консоли: Skymmer
 		wprintf( L"Как пользоваться: \"Patcher.exe\" <опции>\n" );
 		wprintf( L"\n" );
 		wprintf( L"Опции:\n" );
-		wprintf( L"-h, -help Печать справки\n" );
+		wprintf( L" -h, -help	Вывод справки\n" );
+		wprintf( L" -hash{0|1}	Проверять хэши файлов после обработки.\n" );
+		wprintf( L"		0 - Не проверять файлы, 1 - Проверять все файлы\n" );
+		wprintf( L"		По умолчанию включена проверка только Assembly-CSharp.dll\n" );
+		wprintf( L" -v		Вывод в консоль расширенной информации\n" );
+		wprintf( L" -nocheck	Отключить автоматическую проверку новых версий\n" );
 		wprintf( L"\n" );
-		wprintf( L"-md5 Проверять хэши файлов после обработки. По умолчанию включена проверка только Assembly-CSharp.dll\n" );
-		wprintf( L"	md5_off Не проверять хэши\n" );
-		wprintf( L"	md5_all Проверять все файлы\n" );
-		wprintf( L"\n" );
-		wprintf( L"-p Вывод в консоль\n" );
-		wprintf( L"	print_max - Вывод в консоль расширенной информации\n" );
-		wprintf( L"\n" );
-		wprintf( L"-u Отключить автоматическую проверку новых версий\n" );		
-		wprintf( L"	off - Выключить автоматическое обновление\n" );
-		wprintf( L"\n" );
-		wprintf( L"Пример: Patcher.exe -md5 md5_all -p print_max -u off\n" );
+		wprintf( L"Пример: Patcher.exe -hash1 -v -nocheck\n" );
 
 	}
 

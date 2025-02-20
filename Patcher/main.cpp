@@ -13,15 +13,6 @@
 #pragma comment(lib, "version.lib" )
 #pragma warning(disable : 4996)
 
-//#define MD5_OFF		0	// Выкл
-//#define MD5_FULL		1	// Проверка всех файлов
-//#define MD5_IN		2	// Проверка только входящих файлов
-//#define MD5_ACS		3	// Проверить только Assembly-CSharp.dll
-
-//constexpr uint32_t MD5_OFF	= 0; // Выкл
-//constexpr uint32_t MD5_ALL	= 1; // Проверка всех файлов
-//constexpr uint32_t MD5_ACS	= 2; // Проверить только Assembly-CSharp.dll
-
 constexpr uint32_t TWOGIGA = ( unsigned )2 * 1024 * 1024 * 1024;	// 2 гигабайта
 
 uint32_t FilesProcessed = 1;	// Сколько файлов обработано
@@ -48,15 +39,8 @@ int main( int argc, char* argv[] )
 
 	if( Opt.check_update == UPDATE_ON )
 	{
-		try
-		{
-			if( CheckRelease( "1.0" ) == true )
-				return 0;	// Обновились, можно выходить
-		}
-		catch( std::runtime_error& e )
-		{
-			MessageBoxA( nullptr, e.what(), "CheckRelease", MB_ICONERROR );
-		}
+		if( CheckRelease( "1.0" ) == true )
+			return 0;	// Обновились, можно выходить		
 	}
 					
 	md5_check = Opt.md5_check;

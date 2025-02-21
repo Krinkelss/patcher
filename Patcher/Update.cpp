@@ -148,8 +148,13 @@ bool CheckRelease( std::string Ver )
 
 				downloadFile( Url, Dialog.GetResult() );
 			}
+			return true;
 		}
+		else
+			return false;
 	}
+	else
+		return false;
 
 	return true;
 }

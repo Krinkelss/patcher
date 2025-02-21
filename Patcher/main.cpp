@@ -39,7 +39,7 @@ int main( int argc, char* argv[] )
 
 	if( Opt.check_update == UPDATE_ON )
 	{
-		if( CheckRelease( "1.0" ) == true )
+		if( CheckRelease( wstring_to_string( version ) ) == true )
 			return 0;	// Обновились, можно выходить		
 	}
 					
@@ -360,15 +360,27 @@ int main( int argc, char* argv[] )
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
-				MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
-				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+				if( MessageBox( nullptr, ( L"Ошибка копирования файла\n" + AnsiToUnicode( e.what() ) + L"\n\nПропустить?" ).c_str(), L"Копирование файла", MB_YESNO | MB_ICONERROR ) == IDYES )
+				{
+					continue;
+				}
+				else
+				{
+					FreeAllMem( memBuf );
+					return 0;
+				}
 			}
 			catch( std::error_code& e )
 			{
-				MessageBox( NULL, ( AnsiToUnicode( e.message() ) + L"\n" + sData ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
-				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+				if( MessageBox( nullptr, ( L"Ошибка копирования файла\n" + AnsiToUnicode( e.message() ) + L"\n\nПропустить?" ).c_str(), L"Копирование файла", MB_YESNO | MB_ICONERROR ) == IDYES )
+				{
+					continue;
+				}
+				else
+				{
+					FreeAllMem( memBuf );
+					return 0;
+				}
 			}
 
 			wprintf( L"Скопирован файл [%d/%d]: %s\n", FilesProcessed++, AllFiles, relativePath.c_str() );

@@ -1,4 +1,8 @@
-﻿#include "md5.h"
+﻿/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
+#include "md5.h"
 
 #define MD5_UPDATE_BLOCKS(p) Md5_UpdateBlocks
 #define SetUi32(p, v) { byte *_ppp_ = (byte *)(p); UINT _vvv_ = (v); \

@@ -1,4 +1,8 @@
-﻿#include <windows.h>
+﻿/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
+#include <windows.h>
 #include <vector>
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -140,6 +144,7 @@ bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath )
 		if( !mz_zip_reader_file_stat( &zip_archive, i, &file_stat ) )
 		{
 			wprintf( L"Не удалось получить информацию о файле №%d\n", i );
+			mz_zip_reader_end( &zip_archive );
 			return false;
 		}
 
@@ -153,17 +158,11 @@ bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath )
 		std::string directory = extracted_file_path.substr( 0, extracted_file_path.find_last_of( "\\" ) );
 		std::filesystem::create_directories( directory );
 
-		// Создаем полный путь к выходному файлу
-		/*full_output_path = extractToPathA + std::string( file_stat.m_filename, file_stat.m_filename + strlen( file_stat.m_filename ) );
-
-		// Создаем необходимые директории
-		std::string directory = full_output_path.substr( 0, full_output_path.find_last_of( "\\" ) );
-		std::filesystem::create_directory( directory );*/
-
 		// Извлечение файла
 		if( !mz_zip_reader_extract_to_file( &zip_archive, i, extracted_file_path.c_str(), 0 ) )
 		{
 			printf(  "Не удалось извлечь файл: %s\n", Rep.c_str() );
+			mz_zip_reader_end( &zip_archive );
 			return false;
 		}
 

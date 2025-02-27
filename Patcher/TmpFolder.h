@@ -8,14 +8,15 @@
 class TmpFolder
 {
 public:
-	TmpFolder();
+	TmpFolder() = default;
 	~TmpFolder();
-	wchar_t *ReturnTempPath( void );
+	void Init( void );
+	const std::wstring ReturnTempPath( void );
 
 private:
 	void DeleteFolder( void );
 
 private:
-	wchar_t mTempFolder[ _MAX_PATH ] = { 0 };
+	std::wstring mTempFolder;
 };
 

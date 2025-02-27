@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 #include <windows.h>
 #include <string>
 #include <curl/curl.h>
@@ -27,10 +31,10 @@ std::vector<int> splitVersion( const std::string& version )
 // @param (std::string) CurrentVersion - Текущая версия
 // @param (std::string) NewVersion - Новая версия
 // @return (bool) true - true то новая версия больше чем текущая
-bool isVersionGreater( const std::string& CurrentVersion, const std::string& NewVersion )
+bool isVersionGreater( const std::string& currentVersion, const std::string& newVersion )
 {
-	std::vector<int> v1 = splitVersion( CurrentVersion );
-	std::vector<int> v2 = splitVersion( NewVersion );
+	std::vector<int> v1 = splitVersion( currentVersion );
+	std::vector<int> v2 = splitVersion( newVersion );
 
 	size_t maxLength = max( v1.size(), v2.size() );
 	v1.resize( maxLength, 0 );
@@ -56,7 +60,7 @@ size_t WriteCallback( void* contents, size_t size, size_t nmemb, void* userp )
 	return size * nmemb;
 }
 
-bool CheckRelease( std::string Ver )
+bool CheckRelease( std::string currentVersion )
 {
 	CURL* curl;
 	CURLcode res;
@@ -73,8 +77,8 @@ bool CheckRelease( std::string Ver )
 		curl_easy_setopt( curl, CURLOPT_USERAGENT, "libcurl-agent/1.0" );
 		curl_easy_setopt( curl, CURLOPT_FOLLOWLOCATION, 1L ); // Обработка перенаправлений
 		//curl_easy_setopt( curl, CURLOPT_VERBOSE, 1L ); // Включение отладочной информации
-		curl_easy_setopt( curl, CURLOPT_TIMEOUT, 20L ); // Установка таймаута
-		curl_easy_setopt( curl, CURLOPT_CONNECTTIMEOUT, 20L ); // Установка таймаута на подключение	
+		curl_easy_setopt( curl, CURLOPT_TIMEOUT, 30L ); // Установка таймаута
+		curl_easy_setopt( curl, CURLOPT_CONNECTTIMEOUT, 30L ); // Установка таймаута на подключение	
 		curl_easy_setopt( curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE ); // Отключение проверки отзыва сертификатов
 		res = curl_easy_perform( curl );
 
@@ -111,19 +115,20 @@ bool CheckRelease( std::string Ver )
 	nlohmann::json jsonData = nlohmann::json::parse( releaseInfo );
 
 	// Версия последнего релиза
-	std::string NewVer = jsonData[ "tag_name" ];
+	//std::string NewVer = jsonData[ "tag_name" ];
+	std::string NewVer = jsonData.value( "tag_name", "" );
 
 	//! Не забыть вернуть true
-	if( isVersionGreater( Ver, NewVer ) == true )
+	if( isVersionGreater( currentVersion, NewVer ) == true )
 	{// Можно обновляться
-		std::string Buf = "Доступна новая версия программы. Скачать?\n\nТекущая версия: " + Ver + "\nДоступная версия: " + NewVer;
+		std::string Buf = "Доступна новая версия программы. Скачать?\n\nТекущая версия: " + currentVersion + "\nДоступная версия: " + NewVer;
 
 		if( MessageBox( nullptr, AnsiToUnicode( Buf ).c_str(), L"Доступно обновление", MB_YESNO ) == IDYES )
 		{
 			// Получаем ссылку для скачивания релиза	
 			std::string key_url = "browser_download_url";
 			// Проверяем, существует ли ключ в массиве assets
-			if( jsonData.contains( "assets" ) && !jsonData[ "assets" ].empty() )
+			if( jsonData.contains( "assets" ) && !jsonData[ "assets" ].empty() )			
 			{
 				// Получаем первый элемент массива assets
 				nlohmann::json asset = jsonData[ "assets" ][ 0 ];

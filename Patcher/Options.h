@@ -22,9 +22,10 @@ public:
 
 	bool get_arguments( int argc, char* argv[] )
 	{
-		std::vector<std::string> args = std::vector<std::string>();
+		/*std::vector<std::string> args = std::vector<std::string>();
 		for( int i = 1; i < argc; i++ )
-			args.emplace_back( argv[ i ] );
+			args.emplace_back( argv[ i ] );*/
+		std::vector<std::string> args( argv + 1, argv + argc );
 
 		return parse_arguments( args );
 	}
@@ -38,20 +39,22 @@ private:
 			if( args[ i ] == "-h" || args[ i ] == "-help" )
 			{
 				PrintHelp();
-				return true;
+				return false;
 			}
 
 			if( args[ i ] == "-hash0" )
 				md5_check = MD5_OFF;
-
+			else
 			if( args[ i ] == "-hash1" )
 				md5_check = MD5_ALL;
-
+			else
 			if( args[ i ] == "-v" )
 				print_console = PRINT_CONSOLE_MAX;
-
+			else
 			if( args[ i ] == "-nocheck" )
 				check_update = UPDATE_OFF;
+			else
+				wprintf( L"Неизвестный аргумент: %s\n", args[ i ] );
 		}	
 
 		return true;

@@ -1,4 +1,8 @@
-﻿#include <windows.h>
+﻿/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
+#include <windows.h>
 #include <exception>
 #include "SelectDialog.h"
 #include <filesystem>
@@ -11,9 +15,9 @@
 #include "Update.h"
 
 #pragma comment(lib, "version.lib" )
-#pragma warning(disable : 4996)
+//#pragma warning(disable : 4996)
 
-constexpr uint32_t TWOGIGA = ( unsigned )2 * 1024 * 1024 * 1024;	// 2 гигабайта
+constexpr uint32_t DWAGIGA = ( unsigned )( 2 * 1024 * 1024 * 1024 );	// 2 гигабайта
 
 uint32_t FilesProcessed = 1;	// Сколько файлов обработано
 uint32_t AllFiles = 0;			// Всего файлов для обработки
@@ -22,7 +26,7 @@ uint32_t md5_check;				// Проверка эш файлов
 uint32_t print_console;			// Вывод информации в консоль
 
 bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, DWORD MD5Check );
-void FreeAllMem( char * memBuf );
+void FreeAllMem( char **memBuf );
 
 
 int main( int argc, char* argv[] )
@@ -35,7 +39,8 @@ int main( int argc, char* argv[] )
 //////////////////////////////////////////////////////////////////////////
 	
 	Options Opt;
-	Opt.get_arguments( argc, argv );
+	if( Opt.get_arguments( argc, argv ) == false )
+		return 0;
 
 	if( Opt.check_update == UPDATE_ON )
 	{
@@ -97,12 +102,12 @@ int main( int argc, char* argv[] )
 		}
 		catch( const std::filesystem::filesystem_error& e )
 		{
-			MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Не могу удалить файл 123.tmp", MB_OK | MB_ICONERROR );
+			MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Не могу удалить файл 123.tmp [filesystem_error]", MB_OK | MB_ICONERROR );
 			return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 		}
 		catch( const std::error_code& e )
 		{
-			MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Не могу удалить файл 123.tmp", MB_OK | MB_ICONERROR );
+			MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Не могу удалить файл 123.tmp [error_code]", MB_OK | MB_ICONERROR );
 			return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 		}
 	}
@@ -134,12 +139,12 @@ int main( int argc, char* argv[] )
 	}
 	catch( const std::filesystem::filesystem_error& e )
 	{
-		MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Бэкап EscapeFromTarkov.exe", MB_OK | MB_ICONERROR );
+		MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Бэкап EscapeFromTarkov.exe [filesystem_error]", MB_OK | MB_ICONERROR );
 		return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 	}
 	catch( const std::error_code& e )
 	{
-		MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Бэкап EscapeFromTarkov.exe", MB_OK | MB_ICONERROR );
+		MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Бэкап EscapeFromTarkov.exe [error_code]", MB_OK | MB_ICONERROR );
 		return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 	}
 
@@ -168,12 +173,12 @@ int main( int argc, char* argv[] )
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
-				MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"std::filesystem", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Ошибка при переименовывании файла [filesystem_error]", MB_OK | MB_ICONERROR );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( const std::error_code& e )
 			{
-				MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"std::filesystem", MB_OK | MB_ICONERROR );
+				MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Ошибка при переименовывании файла [error_code]", MB_OK | MB_ICONERROR );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 		}
@@ -199,8 +204,17 @@ int main( int argc, char* argv[] )
 		MessageBox( NULL, ( L"Файлов Assembly-CSharp* больше трёх, дальнейшая работа невозможна.\nНайдены файлы:\n" + result ).c_str(), L"!!!", MB_OK | MB_ICONERROR );
 		return 0;
 	}
-	
+
 	TmpFolder fTmp;
+	
+	try
+	{
+		fTmp.Init();
+	}
+	catch( ... )
+	{
+		return 0;
+	}	
 
 	wprintf( L"Распаковываем патч\n" );
 	if( ExtractZipArchive( PatchFile, fTmp.ReturnTempPath() ) == false )
@@ -217,7 +231,7 @@ int main( int argc, char* argv[] )
 	
 	// Нужно выделить буфер для работы с файлами
 	// Максимальный размер файла таркова 1.5 гигабайт, выделим 2 гигабайта, а то мало ли что
-	char *memBuf = ( char * )VirtualAlloc( NULL, TWOGIGA, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
+	char *memBuf = ( char * )VirtualAlloc( NULL, DWAGIGA, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
 	if( memBuf == NULL )
 	{
 		wprintf( L"Ошибка выделения памяти через VirtualAlloc. Errorcode: %d\n", GetLastError() );
@@ -248,13 +262,13 @@ int main( int argc, char* argv[] )
 			catch( const std::runtime_error& e )
 			{
 				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + *it ).c_str(), L"ApplyPatch:runtime_error", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
+				FreeAllMem( &memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( const std::bad_alloc& e )
 			{
 				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + *it ).c_str(), L"ApplyPatch:bad_alloc", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
+				FreeAllMem( &memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 
@@ -269,21 +283,21 @@ int main( int argc, char* argv[] )
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
-				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + *it ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
+				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + *it ).c_str(), L"Копирование файла [filesystem_error]", MB_OK | MB_ICONERROR );
+				FreeAllMem( &memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( std::error_code& e )
 			{
-				MessageBox( NULL, ( AnsiToUnicode( e.message() ) + L"\n" + *it ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
+				MessageBox( NULL, ( AnsiToUnicode( e.message() ) + L"\n" + *it ).c_str(), L"Копирование файла [error_code]", MB_OK | MB_ICONERROR );
+				FreeAllMem( &memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 
 			if( std::filesystem::remove( GamePath + L"\\123.tmp" ) == false )
 			{
 				MessageBox( nullptr, L"Не могу удалить файл 123.tmp", L"Внимание", MB_ICONERROR );
-				FreeAllMem( memBuf );
+				FreeAllMem( &memBuf );
 				return 0;
 			}
 
@@ -307,13 +321,13 @@ int main( int argc, char* argv[] )
 			catch( const std::runtime_error& e )
 			{
 				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + sData ).c_str(), L"ApplyPatch:runtime_error", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
+				FreeAllMem( &memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( const std::bad_alloc& e )
 			{
 				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + sData ).c_str(), L"ApplyPatch:bad_alloc", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
+				FreeAllMem( &memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 
@@ -328,21 +342,21 @@ int main( int argc, char* argv[] )
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
-				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + sData ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
+				MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + sData ).c_str(), L"Копирование файла [filesystem_error]", MB_OK | MB_ICONERROR );
+				FreeAllMem( &memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 			catch( std::error_code& e )
 			{
-				MessageBox( NULL, ( AnsiToUnicode( e.message() ) + L"\n" + sData ).c_str(), L"Копирование файла", MB_OK | MB_ICONERROR );
-				FreeAllMem( memBuf );
+				MessageBox( NULL, ( AnsiToUnicode( e.message() ) + L"\n" + sData ).c_str(), L"Копирование файла [error_code]", MB_OK | MB_ICONERROR );
+				FreeAllMem( &memBuf );
 				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
 			}
 
 			if( std::filesystem::remove( GamePath + L"\\123.tmp" ) == false )
 			{
 				MessageBox( nullptr, L"Не могу удалить файл 123.tmp", L"Внимание", MB_ICONERROR );
-				FreeAllMem( memBuf );
+				FreeAllMem( &memBuf );
 				return 0;
 			}
 		}
@@ -360,25 +374,25 @@ int main( int argc, char* argv[] )
 			}
 			catch( const std::filesystem::filesystem_error& e )
 			{
-				if( MessageBox( nullptr, ( L"Ошибка копирования файла\n" + AnsiToUnicode( e.what() ) + L"\n\nПропустить?" ).c_str(), L"Копирование файла", MB_YESNO | MB_ICONERROR ) == IDYES )
+				if( MessageBox( nullptr, ( L"Ошибка копирования файла\n" + AnsiToUnicode( e.what() ) + L"\n\nПропустить?" ).c_str(), L"Копирование файла [filesystem_error]", MB_YESNO | MB_ICONERROR ) == IDYES )
 				{
 					continue;
 				}
 				else
 				{
-					FreeAllMem( memBuf );
+					FreeAllMem( &memBuf );
 					return 0;
 				}
 			}
 			catch( std::error_code& e )
 			{
-				if( MessageBox( nullptr, ( L"Ошибка копирования файла\n" + AnsiToUnicode( e.message() ) + L"\n\nПропустить?" ).c_str(), L"Копирование файла", MB_YESNO | MB_ICONERROR ) == IDYES )
+				if( MessageBox( nullptr, ( L"Ошибка копирования файла\n" + AnsiToUnicode( e.message() ) + L"\n\nПропустить?" ).c_str(), L"Копирование файла [error_code]", MB_YESNO | MB_ICONERROR ) == IDYES )
 				{
 					continue;
 				}
 				else
 				{
-					FreeAllMem( memBuf );
+					FreeAllMem( &memBuf );
 					return 0;
 				}
 			}
@@ -387,17 +401,17 @@ int main( int argc, char* argv[] )
 		}
 	}
 
-	FreeAllMem( memBuf );
+	FreeAllMem( &memBuf );
 
 	std::filesystem::remove( GamePath + L"\\123.tmp" );
 
 	return 0;
 }
 
-void FreeAllMem( char * memBuf )
+void FreeAllMem( char **memBuf )
 {
-	VirtualFree( memBuf, 0, MEM_RELEASE );
-	memBuf = nullptr;
+	VirtualFree( *memBuf, 0, MEM_RELEASE );
+	*memBuf = nullptr;
 }
 
 // Функция патчинга файлов
@@ -412,7 +426,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	int64_t length;
 	uint32_t b;
 	size_t WriteData = 0, readData = 0;
-	uint32_t progressPercentage = -1;
+	uint32_t progressPercentage = 0;
 	
 	// Получим относительный путь к файлу с патчем
 	std::filesystem::path relativePath = std::filesystem::relative( fPatch, TmpPath );

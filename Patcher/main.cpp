@@ -17,7 +17,7 @@
 #pragma comment(lib, "version.lib" )
 //#pragma warning(disable : 4996)
 
-constexpr uint32_t DWAGIGA = ( unsigned )( 2 * 1024 * 1024 * 1024 );	// 2 гигабайта
+constexpr uint32_t DWAGIGA = 2147483648;	// 2 гигабайта
 
 uint32_t FilesProcessed = 1;	// Сколько файлов обработано
 uint32_t AllFiles = 0;			// Всего файлов для обработки
@@ -28,7 +28,6 @@ uint32_t print_console;			// Вывод информации в консоль
 bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, DWORD MD5Check );
 void FreeAllMem( char **memBuf );
 
-
 int main( int argc, char* argv[] )
 {	
 	setlocale( LC_ALL, "Russian" );
@@ -37,15 +36,22 @@ int main( int argc, char* argv[] )
 
 	wprintf( L"Patcher [%s]: Copyright (c) 2025 Krinkels [krinkels.org]\r\n", version.c_str() );
 //////////////////////////////////////////////////////////////////////////
-	
+		
 	Options Opt;
 	if( Opt.get_arguments( argc, argv ) == false )
 		return 0;
 
 	if( Opt.check_update == UPDATE_ON )
 	{
-		if( CheckRelease( wstring_to_string( version ) ) == true )
-			return 0;	// Обновились, можно выходить		
+		try
+		{
+			if( CheckRelease( wstring_to_string( version ) ) == true )
+				return 0;	// Обновились, можно выходить	
+		}
+		catch( ... )
+		{
+			MessageBox( nullptr, L"Неизвестная ошибка curl", L"Ошибка обновления", MB_ICONERROR );
+		}
 	}
 					
 	md5_check = Opt.md5_check;
@@ -103,12 +109,12 @@ int main( int argc, char* argv[] )
 		catch( const std::filesystem::filesystem_error& e )
 		{
 			MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Не могу удалить файл 123.tmp [filesystem_error]", MB_OK | MB_ICONERROR );
-			return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			return 0;
 		}
 		catch( const std::error_code& e )
 		{
 			MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Не могу удалить файл 123.tmp [error_code]", MB_OK | MB_ICONERROR );
-			return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+			return 0;
 		}
 	}
 

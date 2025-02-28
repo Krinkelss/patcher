@@ -1,4 +1,4 @@
-/*
+п»ї/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -12,7 +12,7 @@
 
 void downloadFile( const std::string& url, const std::wstring& outputPath );
 
-// Сравнение версий
+// РЎСЂР°РІРЅРµРЅРёРµ РІРµСЂСЃРёР№
 std::vector<int> splitVersion( const std::string& version )
 {
 	std::vector<int> parts;
@@ -28,9 +28,9 @@ std::vector<int> splitVersion( const std::string& version )
 	return parts;
 }
 
-// @param (std::string) CurrentVersion - Текущая версия
-// @param (std::string) NewVersion - Новая версия
-// @return (bool) true - true то новая версия больше чем текущая
+// @param (std::string) CurrentVersion - РўРµРєСѓС‰Р°СЏ РІРµСЂСЃРёСЏ
+// @param (std::string) NewVersion - РќРѕРІР°СЏ РІРµСЂСЃРёСЏ
+// @return (bool) true - true С‚Рѕ РЅРѕРІР°СЏ РІРµСЂСЃРёСЏ Р±РѕР»СЊС€Рµ С‡РµРј С‚РµРєСѓС‰Р°СЏ
 bool isVersionGreater( const std::string& currentVersion, const std::string& newVersion )
 {
 	std::vector<int> v1 = splitVersion( currentVersion );
@@ -60,6 +60,18 @@ size_t WriteCallback( void* contents, size_t size, size_t nmemb, void* userp )
 	return size * nmemb;
 }
 
+bool OpenUrlInDefaultBrowser( const std::string& url )
+{
+	HINSTANCE result = ShellExecuteA( NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL );
+	if( ( int )result <= 32 )
+	{
+		// РћР±СЂР°Р±РѕС‚РєР° РѕС€РёР±РєРё
+		MessageBox( NULL, L"РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ СЃСЃС‹Р»РєСѓ РІ Р±СЂР°СѓР·РµСЂРµ.", L"РћС€РёР±РєР°", MB_ICONERROR );
+		return false;
+	}
+	return true;
+}
+
 bool CheckRelease( std::string currentVersion )
 {
 	CURL* curl;
@@ -75,18 +87,18 @@ bool CheckRelease( std::string currentVersion )
 		curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, WriteCallback );
 		curl_easy_setopt( curl, CURLOPT_WRITEDATA, &releaseInfo );
 		curl_easy_setopt( curl, CURLOPT_USERAGENT, "libcurl-agent/1.0" );
-		curl_easy_setopt( curl, CURLOPT_FOLLOWLOCATION, 1L ); // Обработка перенаправлений
-		//curl_easy_setopt( curl, CURLOPT_VERBOSE, 1L ); // Включение отладочной информации
-		curl_easy_setopt( curl, CURLOPT_TIMEOUT, 30L ); // Установка таймаута
-		curl_easy_setopt( curl, CURLOPT_CONNECTTIMEOUT, 30L ); // Установка таймаута на подключение	
-		curl_easy_setopt( curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE ); // Отключение проверки отзыва сертификатов
+		curl_easy_setopt( curl, CURLOPT_FOLLOWLOCATION, 1L ); // РћР±СЂР°Р±РѕС‚РєР° РїРµСЂРµРЅР°РїСЂР°РІР»РµРЅРёР№
+		//curl_easy_setopt( curl, CURLOPT_VERBOSE, 1L ); // Р’РєР»СЋС‡РµРЅРёРµ РѕС‚Р»Р°РґРѕС‡РЅРѕР№ РёРЅС„РѕСЂРјР°С†РёРё
+		curl_easy_setopt( curl, CURLOPT_TIMEOUT, 30L ); // РЈСЃС‚Р°РЅРѕРІРєР° С‚Р°Р№РјР°СѓС‚Р°
+		curl_easy_setopt( curl, CURLOPT_CONNECTTIMEOUT, 30L ); // РЈСЃС‚Р°РЅРѕРІРєР° С‚Р°Р№РјР°СѓС‚Р° РЅР° РїРѕРґРєР»СЋС‡РµРЅРёРµ	
+		curl_easy_setopt( curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE ); // РћС‚РєР»СЋС‡РµРЅРёРµ РїСЂРѕРІРµСЂРєРё РѕС‚Р·С‹РІР° СЃРµСЂС‚РёС„РёРєР°С‚РѕРІ
 		res = curl_easy_perform( curl );
 
 		if( res != CURLE_OK )
 		{
 			curl_easy_cleanup( curl );
 			curl_global_cleanup();
-			throw std::runtime_error( "Ошибка получения обновления: " + std::string( curl_easy_strerror( res ) ) );
+			throw std::runtime_error( "РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РѕР±РЅРѕРІР»РµРЅРёСЏ: " + std::string( curl_easy_strerror( res ) ) );
 		}
 		else
 		{
@@ -98,60 +110,71 @@ bool CheckRelease( std::string currentVersion )
 				//std::cerr << "Response: " << readBuffer << std::endl;
 				curl_easy_cleanup( curl );
 				curl_global_cleanup();
-				throw std::runtime_error( "Ошибка 404, ничего не найдено" );
+				throw std::runtime_error( "РћС€РёР±РєР° 404, РЅРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ" );
 			}
 		}
 	}
 	else
 	{
 		curl_global_cleanup();
-		throw std::runtime_error( "Ошибка инициализации CURL" );
+		throw std::runtime_error( "РћС€РёР±РєР° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё CURL" );
 	}
 
 	curl_easy_cleanup( curl );
 	curl_global_cleanup();
 
-	// Получили.
+	// РџРѕР»СѓС‡РёР»Рё.
 	nlohmann::json jsonData = nlohmann::json::parse( releaseInfo );
 
-	// Версия последнего релиза
+	// Р’РµСЂСЃРёСЏ РїРѕСЃР»РµРґРЅРµРіРѕ СЂРµР»РёР·Р°
 	//std::string NewVer = jsonData[ "tag_name" ];
 	std::string NewVer = jsonData.value( "tag_name", "" );
 
-	//! Не забыть вернуть true
+	//! РќРµ Р·Р°Р±С‹С‚СЊ РІРµСЂРЅСѓС‚СЊ true
 	if( isVersionGreater( currentVersion, NewVer ) == true )
-	{// Можно обновляться
-		std::string Buf = "Доступна новая версия программы. Скачать?\n\nТекущая версия: " + currentVersion + "\nДоступная версия: " + NewVer;
+	{// РњРѕР¶РЅРѕ РѕР±РЅРѕРІР»СЏС‚СЊСЃСЏ
+		std::string Buf = "Р”РѕСЃС‚СѓРїРЅР° РЅРѕРІР°СЏ РІРµСЂСЃРёСЏ РїСЂРѕРіСЂР°РјРјС‹. РЎРєР°С‡Р°С‚СЊ?\n\nРўРµРєСѓС‰Р°СЏ РІРµСЂСЃРёСЏ: " + currentVersion + "\nР”РѕСЃС‚СѓРїРЅР°СЏ РІРµСЂСЃРёСЏ: " + NewVer;
 
-		if( MessageBox( nullptr, AnsiToUnicode( Buf ).c_str(), L"Доступно обновление", MB_YESNO ) == IDYES )
+		if( MessageBox( nullptr, AnsiToUnicode( Buf ).c_str(), L"Р”РѕСЃС‚СѓРїРЅРѕ РѕР±РЅРѕРІР»РµРЅРёРµ", MB_YESNO ) == IDYES )
 		{
-			// Получаем ссылку для скачивания релиза	
+			// РџРѕР»СѓС‡Р°РµРј СЃСЃС‹Р»РєСѓ РґР»СЏ СЃРєР°С‡РёРІР°РЅРёСЏ СЂРµР»РёР·Р°	
 			std::string key_url = "browser_download_url";
-			// Проверяем, существует ли ключ в массиве assets
+			// РџСЂРѕРІРµСЂСЏРµРј, СЃСѓС‰РµСЃС‚РІСѓРµС‚ Р»Рё РєР»СЋС‡ РІ РјР°СЃСЃРёРІРµ assets
 			if( jsonData.contains( "assets" ) && !jsonData[ "assets" ].empty() )			
 			{
-				// Получаем первый элемент массива assets
+				// РџРѕР»СѓС‡Р°РµРј РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РјР°СЃСЃРёРІР° assets
 				nlohmann::json asset = jsonData[ "assets" ][ 0 ];
 
-				// Проверяем наличие ключа browser_download_url
+				// РџСЂРѕРІРµСЂСЏРµРј РЅР°Р»РёС‡РёРµ РєР»СЋС‡Р° browser_download_url
 				if( asset.contains( key_url ) == false )
 				{
-					throw std::runtime_error( "Ключ " + key_url + " не найден" );
+					throw std::runtime_error( "РљР»СЋС‡ " + key_url + " РЅРµ РЅР°Р№РґРµРЅ" );
 				}
 
-				// Ссылка на скачивание
+				// РЎСЃС‹Р»РєР° РЅР° СЃРєР°С‡РёРІР°РЅРёРµ
 				std::string Url = asset[ key_url ];
 
-				// Попробуем скачать наш архив.
-				// Выберем куда сохранять файл
-				SelectDialog Dialog;
+				// РџРѕРїСЂРѕР±СѓРµРј СЃРєР°С‡Р°С‚СЊ РЅР°С€ Р°СЂС…РёРІ.
+				// Р’С‹Р±РµСЂРµРј РєСѓРґР° СЃРѕС…СЂР°РЅСЏС‚СЊ С„Р°Р№Р»
+				/*SelectDialog Dialog;
 
-				if( FAILED( Dialog.SaveFileDialog( L"Выберете папку для сохранения архива" ) ) )
+				if( FAILED( Dialog.SaveFileDialog( L"Р’С‹Р±РµСЂРµС‚Рµ РїР°РїРєСѓ РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ Р°СЂС…РёРІР°" ) ) )
 				{
 					return false;
 				}
+								
+				try
+				{
+					downloadFile( Url, Dialog.GetResult() );
+				}
+				catch( const std::runtime_error& e )
+				{
+					MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"РћС€РёР±РєР° РїСЂРё РїРѕРїС‹С‚РєР° СЃРєР°С‡Р°С‚СЊ С„Р°Р№Р»", MB_OK | MB_ICONERROR );
+					return 0;
+				}*/
 
-				downloadFile( Url, Dialog.GetResult() );
+				if( OpenUrlInDefaultBrowser( Url ) == false )
+					return false;
 			}
 			return true;
 		}
@@ -178,7 +201,7 @@ int ProgressDownloadCallback( void* ptr, curl_off_t totalToDownload, curl_off_t 
 		int percentage = static_cast< int >( ( nowDownloaded * 100 ) / totalToDownload );
 		//std::cout << "\rProgress: " << percentage << "%" << std::flush;
 		if( percentage >= 0 && percentage <= 100 )
-			wprintf( L"\rСкачивание файла: %d%%", percentage );
+			wprintf( L"\rРЎРєР°С‡РёРІР°РЅРёРµ С„Р°Р№Р»Р°: %d%%", percentage );
 	}
 	return 0;
 }
@@ -190,7 +213,7 @@ void downloadFile( const std::string& url, const std::wstring& outputPath )
 	FILE* fp = nullptr;
 	errno_t err = _wfopen_s( &fp, outputPath.c_str(), L"wb" );
 	if( err != 0 )
-		throw std::runtime_error( "Ошибка при создании файла архива" );
+		throw std::runtime_error( "РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё С„Р°Р№Р»Р° Р°СЂС…РёРІР°" );
 
 	curl_global_init( CURL_GLOBAL_DEFAULT );
 	curl = curl_easy_init();
@@ -202,13 +225,15 @@ void downloadFile( const std::string& url, const std::wstring& outputPath )
 		curl_easy_setopt( curl, CURLOPT_WRITEDATA, fp );
 		curl_easy_setopt( curl, CURLOPT_NOPROGRESS, 0L );
 		curl_easy_setopt( curl, CURLOPT_XFERINFOFUNCTION, ProgressDownloadCallback );
-		curl_easy_setopt( curl, CURLOPT_FOLLOWLOCATION, 1L ); // Обработка перенаправлений
-		//curl_easy_setopt( curl, CURLOPT_VERBOSE, 1L ); // Включение отладочной информации
-		curl_easy_setopt( curl, CURLOPT_TIMEOUT, 20L ); // Установка таймаута
-		curl_easy_setopt( curl, CURLOPT_CONNECTTIMEOUT, 20L ); // Установка таймаута на подключение	
-		curl_easy_setopt( curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE ); // Отключение проверки отзыва сертификатов
+		curl_easy_setopt( curl, CURLOPT_FOLLOWLOCATION, 1L ); // РћР±СЂР°Р±РѕС‚РєР° РїРµСЂРµРЅР°РїСЂР°РІР»РµРЅРёР№
+		//curl_easy_setopt( curl, CURLOPT_VERBOSE, 1L ); // Р’РєР»СЋС‡РµРЅРёРµ РѕС‚Р»Р°РґРѕС‡РЅРѕР№ РёРЅС„РѕСЂРјР°С†РёРё
+		curl_easy_setopt( curl, CURLOPT_TIMEOUT, 30L ); // РЈСЃС‚Р°РЅРѕРІРєР° С‚Р°Р№РјР°СѓС‚Р°
+		curl_easy_setopt( curl, CURLOPT_CONNECTTIMEOUT, 30L ); // РЈСЃС‚Р°РЅРѕРІРєР° С‚Р°Р№РјР°СѓС‚Р° РЅР° РїРѕРґРєР»СЋС‡РµРЅРёРµ	
+		//curl_easy_setopt( curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE ); // РћС‚РєР»СЋС‡РµРЅРёРµ РїСЂРѕРІРµСЂРєРё РѕС‚Р·С‹РІР° СЃРµСЂС‚РёС„РёРєР°С‚РѕРІ
+		//curl_easy_setopt( curl, CURLOPT_SSL_VERIFYPEER, 0L );
+		//curl_easy_setopt( curl, CURLOPT_SSL_VERIFYHOST, 0L );
 		
-		wprintf( L"Папытка скачать файл\n" );
+		wprintf( L"РџР°РїС‹С‚РєР° СЃРєР°С‡Р°С‚СЊ С„Р°Р№Р»\n" );
 
 		res = curl_easy_perform( curl );
 		if( res != CURLE_OK )
@@ -216,17 +241,17 @@ void downloadFile( const std::string& url, const std::wstring& outputPath )
 			curl_easy_cleanup( curl );
 			curl_global_cleanup();
 			fclose( fp );
-			throw std::runtime_error( "Ошибка curl_easy_perform(): " + std::string( curl_easy_strerror( res ) ) );
+			throw std::runtime_error( "РћС€РёР±РєР° curl_easy_perform(): " + std::string( curl_easy_strerror( res ) ) );
 		}
 	}
 	else
 	{
 		curl_global_cleanup();
 		fclose( fp );
-		throw std::runtime_error( "Ошибка инициализации CURL" );
+		throw std::runtime_error( "РћС€РёР±РєР° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё CURL" );
 	}
 
-	wprintf( L"\nФайл скачан\n" );
+	wprintf( L"\nР¤Р°Р№Р» СЃРєР°С‡Р°РЅ\n" );
 
 	curl_easy_cleanup( curl );
 	curl_global_cleanup();

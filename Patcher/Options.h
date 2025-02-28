@@ -54,7 +54,7 @@ private:
 			if( args[ i ] == "-nocheck" )
 				check_update = UPDATE_OFF;
 			else
-				wprintf( L"Неизвестный аргумент: %s\n", args[ i ] );
+				wprintf( L"Неизвестный аргумент: %s\n", AnsiToUnicode( args[ i ] ).c_str() );
 		}	
 
 		return true;

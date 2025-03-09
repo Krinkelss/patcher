@@ -152,7 +152,7 @@ bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath )
 		std::replace( Rep.begin(), Rep.end(), '/', '\\' );
 
 		// Создание пути для извлеченного файла
-		extracted_file_path = std::string( extractToPathA ) + Rep.c_str();
+		extracted_file_path = extractToPathA + "\\" + Rep;
 		
 		// Создаем необходимые директории
 		std::string directory = extracted_file_path.substr( 0, extracted_file_path.find_last_of( "\\" ) );

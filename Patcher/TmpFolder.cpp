@@ -4,55 +4,44 @@
 */
 #include <windows.h>
 #include <filesystem>
-#include "Utils.h"
+#include <string>
 #include "TmpFolder.h"
+
+void TmpFolder::init()
+{
+	/*wchar_t ShortPath[_MAX_PATH];
+	wchar_t TempPath[ _MAX_PATH ];
+	wchar_t Tmp2[ _MAX_PATH ] = { 0 };
+
+	GetTempPath( _MAX_PATH, ShortPath );
+
+	if( GetShortPathName( ShortPath, TempPath, _MAX_PATH ) == 0 )
+	{
+		lstrcpy( TempPath, ShortPath );
+	}
+
+	DWORD pid = GetCurrentProcessId() ^ 0xa1234568;
+
+	wsprintf( Tmp2, L"%sbtl_temp_%x\\", TempPath, pid );
+	CreateDirectory( Tmp2, 0 );
+
+	lstrcpy( mTempFolder, Tmp2 );*/
+
+	DWORD pid = GetCurrentProcessId() ^ 0xa1234568;
+
+	std::wstring TempPath = std::filesystem::temp_directory_path().wstring();
+
+	mTempFolder = TempPath + L"btl_temp_" + std::to_wstring( pid );
+
+	std::filesystem::create_directory( mTempFolder );
+}
 
 TmpFolder::~TmpFolder()
 {
-	DeleteFolder();
+	std::filesystem::remove_all( mTempFolder );
 }
 
-void TmpFolder::Init( void )
-{
-	try
-	{
-		std::filesystem::path tempPath = std::filesystem::temp_directory_path();
-		DWORD pid = GetCurrentProcessId() ^ 0xa1234568;
-		std::wstring tempFolder = tempPath / ( L"btl_temp_" + std::to_wstring( pid ) );
-
-		std::filesystem::create_directory( tempFolder );
-		mTempFolder = tempFolder;
-	}
-	catch( const std::filesystem::filesystem_error& e )
-	{
-		MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Ошибка создания временной папки [filesystem_error]", MB_OK | MB_ICONERROR );
-		throw;
-	}
-	catch( const std::error_code& e )
-	{
-		MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Ошибка создания временной папки [error_code]", MB_OK | MB_ICONERROR );
-		throw;
-	}
-}
-
-const std::wstring TmpFolder::ReturnTempPath( void )
+std::wstring TmpFolder::ReturnTempPath( void )
 {
 	return mTempFolder;
-}
-
-void TmpFolder::DeleteFolder( void )
-{
-	//std::filesystem::remove_all( mTempFolder );
-	try
-	{
-		std::filesystem::remove_all( mTempFolder );
-	}
-	catch( const std::filesystem::filesystem_error& e )
-	{
-		MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Ошибка удаления временной папки [ filesystem_error ]", MB_OK | MB_ICONERROR );
-	}
-	catch( const std::error_code& e )
-	{
-		MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Ошибка удаления временной папки [ error_code ]", MB_OK | MB_ICONERROR );
-	}
 }

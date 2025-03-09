@@ -3,6 +3,7 @@
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
 #include <windows.h>
+#include <locale.h>
 #include <exception>
 #include "SelectDialog.h"
 #include <filesystem>
@@ -17,15 +18,15 @@
 #pragma comment(lib, "version.lib" )
 //#pragma warning(disable : 4996)
 
-constexpr uint32_t DWAGIGA = 2147483648;	// 2 гигабайта
-
 uint32_t FilesProcessed = 1;	// Сколько файлов обработано
 uint32_t AllFiles = 0;			// Всего файлов для обработки
 
 uint32_t md5_check;				// Проверка эш файлов
 uint32_t print_console;			// Вывод информации в консоль
 
-bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, DWORD MD5Check );
+uint32_t mem_size;				// Память под буфер для копирования файлов
+
+bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, uint32_t memBufSize, DWORD MD5Check );
 void FreeAllMem( char **memBuf );
 
 int main( int argc, char* argv[] )
@@ -50,12 +51,13 @@ int main( int argc, char* argv[] )
 		}
 		catch( ... )
 		{
-			MessageBox( nullptr, L"Неизвестная ошибка curl", L"Ошибка обновления", MB_ICONERROR );
+			MessageBox( nullptr, L"Неизвестная ошибка curl.\nДля отключения автоматической проверки новых версий\nзапустите программу с параметром \"- nocheck\"", L"Ошибка обновления", MB_ICONERROR );
 		}
 	}
 					
 	md5_check = Opt.md5_check;
 	print_console = Opt.print_console;
+	mem_size = Opt.mem_size;
 
 	//GetLatestRelease( "123" );
 	
@@ -180,12 +182,12 @@ int main( int argc, char* argv[] )
 			catch( const std::filesystem::filesystem_error& e )
 			{
 				MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Ошибка при переименовывании файла [filesystem_error]", MB_OK | MB_ICONERROR );
-				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+				return 0;
 			}
 			catch( const std::error_code& e )
 			{
 				MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Ошибка при переименовывании файла [error_code]", MB_OK | MB_ICONERROR );
-				return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+				return 0;
 			}
 		}
 		else
@@ -212,16 +214,22 @@ int main( int argc, char* argv[] )
 	}
 
 	TmpFolder fTmp;
-	
+
 	try
 	{
-		fTmp.Init();
+		fTmp.init();
 	}
-	catch( ... )
+	catch( const std::filesystem::filesystem_error &e )
 	{
+		MessageBox( NULL, AnsiToUnicode( e.what() ).c_str(), L"Ошибка при создании временной папки [filesystem_error]", MB_OK | MB_ICONERROR );
 		return 0;
-	}	
-
+	}
+	catch( const std::error_code &e )
+	{
+		MessageBox( NULL, AnsiToUnicode( e.message() ).c_str(), L"Ошибка при создании временной папки [error_code]", MB_OK | MB_ICONERROR );
+		return 0;
+	}
+		
 	wprintf( L"Распаковываем патч\n" );
 	if( ExtractZipArchive( PatchFile, fTmp.ReturnTempPath() ) == false )
 		return 0;
@@ -237,7 +245,7 @@ int main( int argc, char* argv[] )
 	
 	// Нужно выделить буфер для работы с файлами
 	// Максимальный размер файла таркова 1.5 гигабайт, выделим 2 гигабайта, а то мало ли что
-	char *memBuf = ( char * )VirtualAlloc( NULL, DWAGIGA, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
+	char *memBuf = ( char * )VirtualAlloc( NULL, mem_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
 	if( memBuf == NULL )
 	{
 		wprintf( L"Ошибка выделения памяти через VirtualAlloc. Errorcode: %d\n", GetLastError() );
@@ -263,7 +271,7 @@ int main( int argc, char* argv[] )
 		{			
 			try
 			{
-				ApplyPatch( GamePath, fTmp.ReturnTempPath(), *it, memBuf, md5_check );
+				ApplyPatch( GamePath, fTmp.ReturnTempPath(), *it, memBuf, mem_size, md5_check );
 			}
 			catch( const std::runtime_error& e )
 			{
@@ -322,7 +330,7 @@ int main( int argc, char* argv[] )
 			// Список патчей
 			try
 			{
-				ApplyPatch( GamePath, fTmp.ReturnTempPath(), sData, memBuf, md5_check );
+				ApplyPatch( GamePath, fTmp.ReturnTempPath(), sData, memBuf, mem_size, md5_check );
 			}
 			catch( const std::runtime_error& e )
 			{
@@ -425,15 +433,17 @@ void FreeAllMem( char **memBuf )
 // @param (std::filesystem::path) TmpPath - Путь к временной папке
 // @param (std::filesystem::path) sData - Путь к файлу с патчем
 // @param (char *) memBuf - Общий буфер для работы с файлами
+// @param (uint32_t *) memBufSize - Размер выделенного буфера
 // @param (DWORD) MD5Check - Проверка файлов MD5 хэш суммой. Не проверять, часть или все
-bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, DWORD MD5Check )
+bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, uint32_t memBufSize, DWORD MD5Check )
 {
 	long start;
-	int64_t length;
+	uint32_t length;
+	uint32_t ReadDataLength = 0;
 	uint32_t b;
 	size_t WriteData = 0, readData = 0;
 	uint32_t progressPercentage = 0;
-	
+
 	// Получим относительный путь к файлу с патчем
 	std::filesystem::path relativePath = std::filesystem::relative( fPatch, TmpPath );
 
@@ -450,7 +460,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	{
 		PatchFile.Init( fPatch.c_str(), false );
 	}
-	catch( const std::runtime_error& e )
+	catch( const std::runtime_error &e )
 	{
 		MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + fPatch ).c_str(), L"PatchFile.Init", MB_OK | MB_ICONERROR );
 		return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
@@ -493,9 +503,9 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	errno_t err;
 
 	err = fopen_s( &FileBeforeFix, wstring_to_string( GamePath + L"\\" + OriginalFile.wstring() ).c_str(), "rb" );
-	if( err !=0 )
+	if( err != 0 )
 		throw std::runtime_error( "Ошибка при открытия оригинального файла" );
-	
+
 	err = fopen_s( &FileAfterFix, wstring_to_string( GamePath + L"\\123.tmp" ).c_str(), "wb" );
 	if( err != 0 )
 		throw std::runtime_error( "Ошибка при открытия патченного файла" );
@@ -506,15 +516,15 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 
 	if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
 		Md5_Init( &md5Context );
-	
+
 	while( PatchFile.PatchData < PatchDataEnd )
 	{
 		b = PatchFile.ReadByte();
 
 		if( b == PatchFile.CopyCommand )
 		{
-			start = ( int64_t )PatchFile.Read<int64_t>();
-			length = ( int64_t )PatchFile.Read<int64_t>();
+			start = ( int64_t )PatchFile.Read<int64_t>();	// Смещение в файле, откуда читаем данные
+			length = ( int64_t )PatchFile.Read<int64_t>();	// Размер данных, которые нужно прочитать
 
 			// Устанавливаем смещение в оригинальном файле
 			// Чтоб от туда прочитать данные размером "length"
@@ -524,67 +534,83 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 				fclose( FileBeforeFix );
 				throw std::runtime_error( "Ошибка при установке смещения в оригинальном файле" );
 			}
-
-			// Читаем данные
-			readData = fread( memBuf, 1, length, FileBeforeFix );
-			if( ferror( FileBeforeFix ) )
+						
+			while( length != 0 )
 			{
-				fclose( FileAfterFix );
-				fclose( FileBeforeFix );
-				throw std::runtime_error( "Ошибка при чтении оригинального файла" );
-			}
+				// Выбираем минимум. При использовании малого количества памяти memBufSize будет меньше чем length. Но не всегда
+				ReadDataLength = min( memBufSize, length );
 
-			if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
-				Md5_Update( &md5Context, ( unsigned char * )memBuf, readData );
+				// Читаем данные
+				readData = fread( memBuf, 1, ReadDataLength, FileBeforeFix );
+				if( ferror( FileBeforeFix ) )
+				{
+					fclose( FileAfterFix );
+					fclose( FileBeforeFix );
+					throw std::runtime_error( "Ошибка при чтении оригинального файла" );
+				}
 
-			// Пишем в файл
-			WriteData = fwrite( memBuf, 1, length, FileAfterFix );
-			if( ferror( FileAfterFix ) )
-			{
-				fclose( FileAfterFix );
-				fclose( FileBeforeFix );
-				throw std::runtime_error( "Ошибка при записи в патченный файл" );
-			}
+				if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
+					Md5_Update( &md5Context, ( unsigned char * )memBuf, readData );
 
-			if( WriteData != length )
-			{
-				fclose( FileAfterFix );
-				fclose( FileBeforeFix );
-				throw std::runtime_error( "CopyCommand: Ошибка при записи в патченный файл, WriteData != length" );
-			}
-		}
-		else
-		if( b == PatchFile.DataCommand )
-		{
-			length = ( int64_t )PatchFile.Read<int64_t>();
-			
-			PatchFile.ReadBytes( memBuf, length );
+				// Пишем в файл
+				WriteData = fwrite( memBuf, 1, ReadDataLength, FileAfterFix );
+				if( ferror( FileAfterFix ) )
+				{
+					fclose( FileAfterFix );
+					fclose( FileBeforeFix );
+					throw std::runtime_error( "Ошибка при записи в патченный файл" );
+				}
 
-			if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
-				Md5_Update( &md5Context, ( unsigned char * )memBuf, length );
+				if( WriteData != ReadDataLength )
+				{
+					fclose( FileAfterFix );
+					fclose( FileBeforeFix );
+					throw std::runtime_error( "CopyCommand: Ошибка при записи в патченный файл, WriteData != length" );
+				}
 
-			// Пишем в файл
-			WriteData = fwrite( memBuf, 1, length, FileAfterFix );
-			if( ferror( FileAfterFix ) )
-			{
-				fclose( FileAfterFix );
-				fclose( FileBeforeFix );
-				throw std::runtime_error( "Ошибка при записи в патченный файл" );
-			}
-
-			if( WriteData != length )
-			{
-				fclose( FileAfterFix );
-				fclose( FileBeforeFix );
-				throw std::runtime_error( "DataCommand: Ошибка при записи в патченный файл, WriteData != length" );
+				length -= ReadDataLength;
 			}
 		}
 		else
-		{
-			fclose( FileAfterFix );
-			fclose( FileBeforeFix );
-			throw std::runtime_error( "Неизвестный байт" );
-		}
+			if( b == PatchFile.DataCommand )
+			{
+				length = ( int64_t )PatchFile.Read<int64_t>();
+
+				while( length != 0 )
+				{
+					// Выбираем минимум. При использовании малого количества памяти memBufSize будет меньше чем length. Но не всегда
+					ReadDataLength = min( memBufSize, length );
+
+					PatchFile.ReadBytes( memBuf, ReadDataLength );
+
+					if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
+						Md5_Update( &md5Context, ( unsigned char * )memBuf, ReadDataLength );
+
+					// Пишем в файл
+					WriteData = fwrite( memBuf, 1, ReadDataLength, FileAfterFix );
+					if( ferror( FileAfterFix ) )
+					{
+						fclose( FileAfterFix );
+						fclose( FileBeforeFix );
+						throw std::runtime_error( "Ошибка при записи в патченный файл" );
+					}
+
+					if( WriteData != ReadDataLength )
+					{
+						fclose( FileAfterFix );
+						fclose( FileBeforeFix );
+						throw std::runtime_error( "DataCommand: Ошибка при записи в патченный файл, WriteData != length" );
+					}
+
+					length -= ReadDataLength;
+				}
+			}
+			else
+			{
+				fclose( FileAfterFix );
+				fclose( FileBeforeFix );
+				throw std::runtime_error( "Неизвестный байт" );
+			}
 
 		uint32_t percent = PatchFile.GetPosition() * 100 / PatchFile.GetFileSize();
 

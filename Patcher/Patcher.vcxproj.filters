@@ -3,18 +3,36 @@
   <ItemGroup>
     <Filter Include="Исходные файлы">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="Файлы заголовков">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
     <Filter Include="Файлы ресурсов">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="curl">
+      <UniqueIdentifier>{c33b76f9-d10d-4345-a88a-8d0dc6615b01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="curl\include">
+      <UniqueIdentifier>{1b5a3daf-bd6f-4b30-ba53-4b9133cd54ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="curl\lib">
+      <UniqueIdentifier>{432e2227-cdd8-4388-bc4d-c448e7347dcd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="curl\include\curl">
+      <UniqueIdentifier>{2e7b0ff0-c119-4d52-932d-6a0b2766fa54}</UniqueIdentifier>
+    </Filter>
     <Filter Include="miniz">
-      <UniqueIdentifier>{bba14ade-1bd4-4226-ae5f-5272c890743e}</UniqueIdentifier>
+      <UniqueIdentifier>{997608a6-3a66-471f-8757-2814a8013197}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="nlohmann">
+      <UniqueIdentifier>{2e6a9e93-4559-4a8f-8bf4-1048ff85a87a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="nlohmann\nlohmann">
+      <UniqueIdentifier>{3b663604-0cf1-4cf2-ad48-2017ca37ef3b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -33,21 +51,24 @@
     <ClCompile Include="SelectDialog.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="Utild.cpp">
+    <ClCompile Include="TmpFolder.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="TmpFolder.cpp">
+    <ClCompile Include="Update.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="Utild.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="miniz\miniz.c">
       <Filter>miniz</Filter>
     </ClCompile>
-    <ClCompile Include="Update.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64_decode.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="BinaryFormat.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="FileMapper.h">
@@ -56,34 +77,90 @@
     <ClInclude Include="md5.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="SelectDialog.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="TmpFolder.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="miniz\miniz.h">
-      <Filter>miniz</Filter>
-    </ClInclude>
-    <ClInclude Include="BinaryFormat.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="Options.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="SelectDialog.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="TmpFolder.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
     <ClInclude Include="Update.h">
       <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\curl.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\curlver.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\easy.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\header.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\mprintf.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\multi.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\options.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\stdcheaders.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\system.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\typecheck-gcc.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\urlapi.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="curl\include\curl\websockets.h">
+      <Filter>curl\include\curl</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz\miniz.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="nlohmann\nlohmann\adl_serializer.hpp">
+      <Filter>nlohmann\nlohmann</Filter>
+    </ClInclude>
+    <ClInclude Include="nlohmann\nlohmann\byte_container_with_subtype.hpp">
+      <Filter>nlohmann\nlohmann</Filter>
+    </ClInclude>
+    <ClInclude Include="nlohmann\nlohmann\json.hpp">
+      <Filter>nlohmann\nlohmann</Filter>
+    </ClInclude>
+    <ClInclude Include="nlohmann\nlohmann\json_fwd.hpp">
+      <Filter>nlohmann\nlohmann</Filter>
+    </ClInclude>
+    <ClInclude Include="nlohmann\nlohmann\ordered_map.hpp">
+      <Filter>nlohmann\nlohmann</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc">
       <Filter>Файлы ресурсов</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="curl\lib\libcurl_a.lib">
+      <Filter>curl\lib</Filter>
+    </Library>
+    <Library Include="curl\lib\libcurl_a_debug.lib">
+      <Filter>curl\lib</Filter>
+    </Library>
   </ItemGroup>
 </Project>

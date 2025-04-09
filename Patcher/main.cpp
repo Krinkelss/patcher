@@ -51,7 +51,7 @@ int main( int argc, char* argv[] )
 		}
 		catch( ... )
 		{
-			MessageBox( nullptr, L"Неизвестная ошибка curl.\nДля отключения автоматической проверки новых версий\nзапустите программу с параметром \"- nocheck\"", L"Ошибка обновления", MB_ICONERROR );
+			MessageBox( nullptr, L"Неизвестная ошибка curl.\nДля отключения автоматической проверки новых версий\nзапустите программу с параметром \"-nocheck\"", L"Ошибка обновления", MB_ICONERROR );
 		}
 	}
 					
@@ -75,7 +75,7 @@ int main( int argc, char* argv[] )
 	hr = sDialog.PickFile( L"Выберите файл с патчем" );
 	if( FAILED( hr ) )
 	{
-		wprintf( L"Папка не выбрана, выходим\n" );
+		wprintf( L"Файл не выбран, выходим\n" );
 		return 0;
 	}
 	std::wstring PatchFile = sDialog.GetResult();	// Путь к файлу с патчем
@@ -443,13 +443,15 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	uint32_t b;
 	size_t WriteData = 0, readData = 0;
 	uint32_t progressPercentage = 0;
-
+		
 	// Получим относительный путь к файлу с патчем
 	std::filesystem::path relativePath = std::filesystem::relative( fPatch, TmpPath );
 
 	// Оригинальный файл в папке с игрой
 	std::filesystem::path OriginalFile = relativePath;
 	OriginalFile.replace_extension();
+
+	wprintf ( L"Обработка файла [%d/%d]: %s\n", FilesProcessed++, AllFiles, OriginalFile.wstring ().c_str () );
 
 	// Так, теперь можно начать работать с файлами
 	FileMapper PatchFile;			// Файл с патчем, .patch
@@ -653,8 +655,6 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 
 	fclose( FileAfterFix );
 	fclose( FileBeforeFix );
-
-	wprintf( L"Обработан файл [%d/%d]: %s\n", FilesProcessed++, AllFiles, OriginalFile.wstring().c_str() );
-
+		
 	return true;
 }

@@ -7,13 +7,13 @@
 #include <exception>
 #include "SelectDialog.h"
 #include <filesystem>
-#include "FileMapper.h"
 #include "Utils.h"
 #include "TmpFolder.h"
 #include "base64_decode.h"
 #include "md5.h"
 #include "Options.h"
 #include "Update.h"
+#include "BinaryFormat.h"
 
 #pragma comment(lib, "version.lib" )
 //#pragma warning(disable : 4996)
@@ -437,12 +437,13 @@ void FreeAllMem( char **memBuf )
 // @param (DWORD) MD5Check - Проверка файлов MD5 хэш суммой. Не проверять, часть или все
 bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, uint32_t memBufSize, DWORD MD5Check )
 {
-	long start;
-	uint32_t length;
+	uint64_t start;
+	uint64_t length;
 	uint32_t ReadDataLength = 0;
 	uint32_t b;
 	size_t WriteData = 0, readData = 0;
 	uint32_t progressPercentage = 0;
+	uint32_t percent = 0;
 		
 	// Получим относительный путь к файлу с патчем
 	std::filesystem::path relativePath = std::filesystem::relative( fPatch, TmpPath );
@@ -453,89 +454,70 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 
 	wprintf ( L"Обработка файла [%d/%d]: %s\n", FilesProcessed++, AllFiles, OriginalFile.wstring ().c_str () );
 
-	// Так, теперь можно начать работать с файлами
-	FileMapper PatchFile;			// Файл с патчем, .patch
+	uint64_t filesize = std::filesystem::file_size( wstring_to_string( fPatch ).c_str() );
 
-	// Обработаем файл с патчем. 
-	// Один раз было что у него другая "шапка" была, и отсюда всё сломалось
-	try
-	{
-		PatchFile.Init( fPatch.c_str(), false );
-	}
-	catch( const std::runtime_error &e )
-	{
-		MessageBox( NULL, ( AnsiToUnicode( e.what() ) + L"\n" + fPatch ).c_str(), L"PatchFile.Init", MB_OK | MB_ICONERROR );
-		return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
-	}
+	// Так, теперь можно начать работать с файлами
+	FILEWrapper PatchFile( wstring_to_string( fPatch ).c_str(), false );
 
 	// Проверяем идентификатор файла, наш патч или не наш
-	std::string header = PatchFile.ReadString( PatchFile.DeltaFormatHeaderLength );
-	if( header.compare( "FRSNCDLTA" ) != 0 )
-		throw std::runtime_error( "Некорректный файл" );
+	char header[ 10 ] = { 0 };
+	PatchFile.readfile( header, 9, "Ошибка при чтении идентификатора в файле патча" );
 
-	// Теперь проверим версию?
-	uint32_t version = PatchFile.ReadByte();
-	if( version != PatchFile.Version )
-		throw std::runtime_error( "Некорректный байт" );
+	if( lstrcmpA( header, "FRSNCDLTA" ) != 0 )
+	{
+		throw std::runtime_error( "Неизвестный формат патча" );
+	}
 
-	// Может я и ошибаюсь, но, возможно, это размер json строки что будет далее
-	uint32_t StrLength = PatchFile.ReadByte();
+	// Теперь проверим версию
+	//PatchFile.readfile( TmpBuf, 1, "Ошибка при чтении версии в файле патча" );
+	uint32_t version = PatchFile.getint( "Ошибка при чтении версии в файле патча" );
 
-	// Опять такой же байт. Пока оставлю так, потом посмотрим
-	version = PatchFile.ReadByte();
+	if( version != 1 ) // Версия должна быть равна 1
+		throw std::runtime_error( "Некорректный байт версии" );
 
-	// Читаем json данные
-	std::string metadataStr = PatchFile.ReadString( StrLength );
+	// Читаем длину json строки
+	uint32_t jsonLength = PatchFile.read_7bit_encoded_int();
+
+	// По идее такого не может быть, но чем чёрт не шутит
+	if( jsonLength > 256 )
+		throw std::runtime_error( "Размер json строки больше чем буфер" );
+
+	// Читаем саму строку
+	char metadataStr[ 256 ];
+	PatchFile.readfile( metadataStr, jsonLength, "Ошибка при чтении json строки в файле патча" );
+	metadataStr[ jsonLength ] = '\0';
 
 	std::unordered_map<std::string, std::string> parsedJson = ParseJson( metadataStr );
 
 	// Данные патченного файла
-	PatchFile.expectedFileHashAlgorithm = parsedJson[ "expectedFileHashAlgorithm" ];	// MD5 или другой алгоритм
-	PatchFile.expectedFileHash = parsedJson[ "expectedFileHash" ];						// Строка в base64
+	expectedFileHashAlgorithm = parsedJson[ "expectedFileHashAlgorithm" ];	// MD5 или другой алгоритм
+	expectedFileHash = parsedJson[ "expectedFileHash" ];						// Строка в base64
 
 	// Данные оригинального файла
 //	PatchFile.baseFileHashAlgorithm = parsedJson[ "baseFileHashAlgorithm" ];			// MD5 или другой алгоритм
 //	PatchFile.baseFileHash = parsedJson[ "baseFileHash" ];								// Строка в base64
 
-	if( PatchFile.expectedFileHashAlgorithm != "MD5" )
+	if( expectedFileHashAlgorithm != "MD5" )
 		MD5Check = MD5_OFF;	// В json массиве задан какой то другой алгорит хэширования, значит, в дальнейшем, с MD5 работать не будем
 
-	FILE *FileBeforeFix;	// Файл который нужно патчить
-	FILE *FileAfterFix;		// Файл который получится после патча
-	errno_t err;
-
-	err = fopen_s( &FileBeforeFix, wstring_to_string( GamePath + L"\\" + OriginalFile.wstring() ).c_str(), "rb" );
-	if( err != 0 )
-		throw std::runtime_error( "Ошибка при открытия оригинального файла" );
-
-	err = fopen_s( &FileAfterFix, wstring_to_string( GamePath + L"\\123.tmp" ).c_str(), "wb" );
-	if( err != 0 )
-		throw std::runtime_error( "Ошибка при открытия патченного файла" );
-
-	char *PatchDataEnd = PatchFile.GetView() + PatchFile.GetFileSize(); // Указатель на конец данных
+	FILEWrapper FileBeforeFix( wstring_to_string( GamePath + L"\\" + OriginalFile.wstring() ).c_str(), false );
+	FILEWrapper FileAfterFix( wstring_to_string( GamePath + L"\\123.tmp" ).c_str(), true );
 
 	CMd5 md5Context;
 
 	if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
 		Md5_Init( &md5Context );
 
-	while( PatchFile.PatchData < PatchDataEnd )
+	while( ( b = PatchFile.getint( "Ошибка чтения служебного байта" ) ) > 0 )
 	{
-		b = PatchFile.ReadByte();
-
-		if( b == PatchFile.CopyCommand )
+		if( b == CopyCommand )
 		{
-			start = ( int64_t )PatchFile.Read<int64_t>();	// Смещение в файле, откуда читаем данные
-			length = ( int64_t )PatchFile.Read<int64_t>();	// Размер данных, которые нужно прочитать
+			PatchFile.readfile( &start, sizeof( start ), "Ошибка чтения смещения начала для копирования" );
+			PatchFile.readfile( &length, sizeof( length ), "Ошибка чтения размера копируемого участка" );
 
 			// Устанавливаем смещение в оригинальном файле
 			// Чтоб от туда прочитать данные размером "length"
-			if( fseek( FileBeforeFix, start, SEEK_SET ) != 0 )
-			{
-				fclose( FileAfterFix );
-				fclose( FileBeforeFix );
-				throw std::runtime_error( "Ошибка при установке смещения в оригинальном файле" );
-			}
+			FileBeforeFix.fseekfile( start, "Ошибка при установке смещения в оригинальном файле" );
 						
 			while( length != 0 )
 			{
@@ -543,81 +525,48 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 				ReadDataLength = min( memBufSize, length );
 
 				// Читаем данные
-				readData = fread( memBuf, 1, ReadDataLength, FileBeforeFix );
-				if( ferror( FileBeforeFix ) )
-				{
-					fclose( FileAfterFix );
-					fclose( FileBeforeFix );
-					throw std::runtime_error( "Ошибка при чтении оригинального файла" );
-				}
+				readData = FileBeforeFix.readfile( memBuf, ReadDataLength, "Ошибка при чтении оригинального файла" );
 
 				if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
 					Md5_Update( &md5Context, ( unsigned char * )memBuf, readData );
 
 				// Пишем в файл
-				WriteData = fwrite( memBuf, 1, ReadDataLength, FileAfterFix );
-				if( ferror( FileAfterFix ) )
-				{
-					fclose( FileAfterFix );
-					fclose( FileBeforeFix );
-					throw std::runtime_error( "Ошибка при записи в патченный файл" );
-				}
-
-				if( WriteData != ReadDataLength )
-				{
-					fclose( FileAfterFix );
-					fclose( FileBeforeFix );
-					throw std::runtime_error( "CopyCommand: Ошибка при записи в патченный файл, WriteData != length" );
-				}
+				FileAfterFix.writefile( memBuf, ReadDataLength, "Ошибка при записи в патченный файл" );
 
 				length -= ReadDataLength;
 			}
 		}
 		else
-			if( b == PatchFile.DataCommand )
+			if( b == DataCommand )
 			{
-				length = ( int64_t )PatchFile.Read<int64_t>();
+				PatchFile.readfile( &length, sizeof( length ), "Ошибка чтения размера блока для копирования" );
 
 				while( length != 0 )
 				{
 					// Выбираем минимум. При использовании малого количества памяти memBufSize будет меньше чем length. Но не всегда
 					ReadDataLength = min( memBufSize, length );
 
-					PatchFile.ReadBytes( memBuf, ReadDataLength );
+					PatchFile.readfile( memBuf, ReadDataLength, "Ошибка чтения блока для копирования" );
 
 					if( MD5Check == MD5_ALL || MD5Check == MD5_ACS )
 						Md5_Update( &md5Context, ( unsigned char * )memBuf, ReadDataLength );
 
 					// Пишем в файл
-					WriteData = fwrite( memBuf, 1, ReadDataLength, FileAfterFix );
-					if( ferror( FileAfterFix ) )
-					{
-						fclose( FileAfterFix );
-						fclose( FileBeforeFix );
-						throw std::runtime_error( "Ошибка при записи в патченный файл" );
-					}
-
-					if( WriteData != ReadDataLength )
-					{
-						fclose( FileAfterFix );
-						fclose( FileBeforeFix );
-						throw std::runtime_error( "DataCommand: Ошибка при записи в патченный файл, WriteData != length" );
-					}
+					FileAfterFix.writefile( memBuf, ReadDataLength, "Ошибка при записи в патченный файл" );
 
 					length -= ReadDataLength;
 				}
 			}
 			else
 			{
-				fclose( FileAfterFix );
-				fclose( FileBeforeFix );
 				throw std::runtime_error( "Неизвестный байт" );
 			}
 
-		uint32_t percent = PatchFile.GetPosition() * 100 / PatchFile.GetFileSize();
+
+		percent = SetFilePointer( PatchFile.get(), NULL, NULL, FILE_CURRENT ) * 100 / filesize;
 
 
-		if( progressPercentage != percent && print_console == PRINT_CONSOLE_MAX/* && percent > 0 && percent % 10 == 0*/ )
+		if( progressPercentage < percent && print_console == PRINT_CONSOLE_MAX )
 		{
 			progressPercentage = percent;
 			wprintf( L"\r%d%%", percent );
@@ -629,13 +578,12 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 		unsigned char md5Digest[ 16 ]; // MD5-хэш состоит из 16 байт
 		Md5_Final( &md5Context, md5Digest );
 
-		std::string expectedFileHash = base64_decode( PatchFile.expectedFileHash );
+		std::string expectedFH = base64_decode( expectedFileHash );
 		std::string digesthash = binToHex( ( char * )md5Digest, 16 );
 
-		if( expectedFileHash != digesthash )
+
+		if( expectedFH != digesthash )
 		{
-			fclose( FileAfterFix );
-			fclose( FileBeforeFix );
 			throw std::runtime_error( "Хэш файла " + std::filesystem::path( fPatch ).filename().string() + " и хэш в файле патча не совпадают\nДальнейшая работа невозможна" );
 		}
 
@@ -652,9 +600,6 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 			wprintf( L"\nХэш файла и хэш из патча совпадают\n" );
 		}
 	}
-
-	fclose( FileAfterFix );
-	fclose( FileBeforeFix );
 		
 	return true;
 }

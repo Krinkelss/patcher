@@ -42,9 +42,6 @@
     <ClCompile Include="base64_decode.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="FileMapper.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="md5.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
@@ -69,9 +66,6 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="BinaryFormat.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="FileMapper.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="md5.h">

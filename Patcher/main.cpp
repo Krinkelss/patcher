@@ -14,6 +14,7 @@
 #include "Options.h"
 #include "Update.h"
 #include "BinaryFormat.h"
+#include "filewripper.h"
 
 #pragma comment(lib, "version.lib" )
 //#pragma warning(disable : 4996)
@@ -476,6 +477,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 		throw std::runtime_error( "Некорректный байт версии" );
 
 	// Читаем длину json строки
+	// Спасибо Shegorat за наводку
 	uint32_t jsonLength = PatchFile.read_7bit_encoded_int();
 
 	// По идее такого не может быть, но чем чёрт не шутит

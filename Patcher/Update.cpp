@@ -153,9 +153,10 @@ bool CheckRelease( std::string currentVersion )
 
 				// Ссылка на скачивание
 				std::string Url = asset[ key_url ];
-
+				
 				// Попробуем скачать наш архив.
 				// Выберем куда сохранять файл
+				// Нихрена это не работает
 				/*SelectDialog Dialog;
 
 				if( FAILED( Dialog.SaveFileDialog( L"Выберете папку для сохранения архива" ) ) )

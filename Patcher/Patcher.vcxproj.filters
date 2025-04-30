@@ -60,6 +60,9 @@
     <ClCompile Include="miniz\miniz.c">
       <Filter>miniz</Filter>
     </ClCompile>
+    <ClCompile Include="filewripper.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64_decode.h">
@@ -142,6 +145,9 @@
     </ClInclude>
     <ClInclude Include="nlohmann\nlohmann\ordered_map.hpp">
       <Filter>nlohmann\nlohmann</Filter>
+    </ClInclude>
+    <ClInclude Include="filewripper.h">
+      <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

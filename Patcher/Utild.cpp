@@ -1,8 +1,4 @@
-﻿/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
-#include <windows.h>
+﻿#include <windows.h>
 #include <vector>
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -37,12 +33,12 @@ std::wstring GetFileVersion( const std::wstring& filePath )
 		return L"";
 	}
 
-	std::wstring version = std::to_wstring( HIWORD( fileInfo->dwFileVersionMS ) ) + L"." +
+	/*std::wstring version = std::to_wstring( HIWORD( fileInfo->dwFileVersionMS ) ) + L"." +
 		std::to_wstring( LOWORD( fileInfo->dwFileVersionMS ) ) + L"." +
 		std::to_wstring( HIWORD( fileInfo->dwFileVersionLS ) ) + L"." +
 		std::to_wstring( LOWORD( fileInfo->dwFileVersionLS ) );
 
-	//return version;
+	return version;*/
 	return std::to_wstring( LOWORD( fileInfo->dwFileVersionLS ) );
 }
 
@@ -95,7 +91,7 @@ std::wstring AnsiToUnicode( const std::string& ansi )
 	int length = MultiByteToWideChar( CP_ACP, 0, ansi.c_str(), -1, nullptr, 0 );
 	if( length == 0 )
 	{
-		throw std::runtime_error( "Failed to convert ANSI to Unicode" );
+		throw std::runtime_error( "Ошибка при попытке получения длины ANSI строки" );
 	}
 
 	// Выделяем память для результирующей строки
@@ -104,7 +100,7 @@ std::wstring AnsiToUnicode( const std::string& ansi )
 	// Выполняем преобразование
 	if( MultiByteToWideChar( CP_ACP, 0, ansi.c_str(), -1, &unicode[ 0 ], length ) == 0 )
 	{
-		throw std::runtime_error( "Failed to convert ANSI to Unicode" );
+		throw std::runtime_error( "Ошибка при преобразовании ANSI символов в Unicode. 2" );
 	}
 
 	// Убираем завершающий нулевой символ
@@ -166,7 +162,8 @@ bool ExtractZipArchive( std::wstring zipFilePath, std::wstring extractToPath )
 			return false;
 		}
 
-		wprintf( L"\rРаспаковано файлов %d[%d%%]", currentfile, currentfile++ * 100 / file_count );
+		wprintf( L"\rРаспаковано файлов %d[%d%%]", currentfile, currentfile * 100 / file_count );
+		++currentfile;
 	}
 
 	wprintf( L"\rРаспаковано файлов %d[100%%]\n", currentfile );

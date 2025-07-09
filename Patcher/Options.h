@@ -13,6 +13,11 @@ constexpr uint32_t PRINT_CONSOLE_MAX = 1;	// Выводить всю инфор�
 constexpr uint32_t UPDATE_OFF = 0;			// Выключить проверку обновления
 constexpr uint32_t UPDATE_ON = 1;			// Включить проверку обновления
 
+// Проверка целостности файлов после обновление
+constexpr uint32_t INTEGRITY_CHECK_OFF = 0;	// Выкл
+constexpr uint32_t INTEGRITY_CHECK_ON = 1;	// Проверять только хэш
+constexpr uint32_t INTEGRITY_CHECK_ALL = 2;	// Проверять хэш и размер файла
+
 // Объём памяти для работы с файлами
 constexpr uint32_t SMALL_MEM = 10485760;	// 10 мегабайт
 constexpr uint32_t LARGE_MEM = 2147483648;	// 2 гигабайта
@@ -61,6 +66,12 @@ private:
 			if( args[ i ] == "-lm" )
 				mem_size = LARGE_MEM;
 			else
+			if( args[ i ] == "-ic1" )
+				integrity_check = INTEGRITY_CHECK_ON;
+			else
+				if( args[ i ] == "-ic2" )
+					integrity_check = INTEGRITY_CHECK_ALL;
+			else
 				wprintf( L"Неизвестный аргумент: %s\n", AnsiToUnicode( args[ i ] ).c_str() );
 		}	
 
@@ -74,12 +85,12 @@ private:
 		wprintf( L"\n" );
 		wprintf( L"Опции:\n" );
 		wprintf( L" -h, -help	Вывод справки\n" );
-		wprintf( L" -hash{0|1}	Проверять хэши файлов после обработки.\n" );
+		wprintf( L" -hash{0|1}	Проверять хэши пропатченных файлов после обработки.\n" );
 		wprintf( L"		0 - Не проверять файлы, 1 - Проверять все файлы\n" );
 		wprintf( L"		По умолчанию включена проверка только Assembly-CSharp.dll\n" );
 		wprintf( L" -v		Вывод в консоль расширенной информации\n" );
 		wprintf( L" -nocheck	Отключить автоматическую проверку новых версий\n" );
-		wprintf( L" -lm	Использовать большой объём памяти(1 гигабайт) для копирования файлов\n" );
+		wprintf( L" -lm		Использовать большой объём памяти(1 гигабайт) для копирования файлов\n" );
 		wprintf( L"\n" );
 		wprintf( L"Пример: Patcher.exe -hash1 -v -nocheck\n" );
 
@@ -90,4 +101,5 @@ public:
 	uint32_t print_console = PRINT_CONSOLE_MIN;		// Вывод информации в консоль. По умолчанию минимальная
 	uint32_t check_update = UPDATE_ON;				// Проверка наличия обновления 
 	uint32_t mem_size = SMALL_MEM;					// Память под буфер для копирования файлов
+	uint32_t integrity_check = INTEGRITY_CHECK_OFF;	// Проверка целостности файлов после обновление
 };

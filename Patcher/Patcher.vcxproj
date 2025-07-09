@@ -137,6 +137,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="base64_decode.cpp" />
+    <ClCompile Include="CheckGameFile.cpp" />
     <ClCompile Include="filewripper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="md5.cpp" />
@@ -149,6 +150,7 @@
   <ItemGroup>
     <ClInclude Include="base64_decode.h" />
     <ClInclude Include="BinaryFormat.h" />
+    <ClInclude Include="CheckGameFile.h" />
     <ClInclude Include="curl\include\curl\curl.h" />
     <ClInclude Include="curl\include\curl\curlver.h" />
     <ClInclude Include="curl\include\curl\easy.h" />

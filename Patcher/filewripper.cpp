@@ -1,8 +1,4 @@
-﻿/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
-#include <stdexcept>
+﻿#include <stdexcept>
 #include "filewripper.h"
 
 FILEWrapper::FILEWrapper( const char *filePath, bool writeAccess )
@@ -64,7 +60,7 @@ uint32_t FILEWrapper::read_7bit_encoded_int( void )
 {
 	uint32_t result = 0;
 	int shift = 0;
-	char buffer;
+	uint8_t buffer;
 	DWORD bytesRead;
 	int byte;
 
@@ -97,7 +93,24 @@ uint32_t FILEWrapper::read_7bit_encoded_int( void )
 			}
 		}
 		else
-			throw std::runtime_error( "Ошибка чтения 7-битного закодированного числа" );
+		{
+			// Получаем ошибку, если чтение не удалось
+			DWORD dwError = GetLastError();
+			if (dwError == ERROR_HANDLE_EOF)
+			{
+				throw std::runtime_error("Неожиданный конец файла при чтении 7-битного закодированного числа.");
+			}
+			else if (dwError == ERROR_INVALID_HANDLE)
+			{
+				throw std::runtime_error( "Неверный дескриптор файла. Проверьте, был ли файл открыт корректно.");
+			}
+			else
+			{
+				throw std::runtime_error( "Ошибка чтения 7-битного закодированного числа" );
+			}
+		}
+		/*else
+			throw std::runtime_error( "Ошибка чтения 7-битного закодированного числа" );*/
 	}
 
 	return result;

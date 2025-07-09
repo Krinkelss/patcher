@@ -1,8 +1,4 @@
-﻿/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
-#include <windows.h>
+﻿#include <windows.h>
 #include <locale.h>
 #include <exception>
 #include "SelectDialog.h"
@@ -15,6 +11,7 @@
 #include "Update.h"
 #include "BinaryFormat.h"
 #include "filewripper.h"
+#include "CheckGameFile.h"
 
 #pragma comment(lib, "version.lib" )
 //#pragma warning(disable : 4996)
@@ -38,7 +35,18 @@ int main( int argc, char* argv[] )
 
 	wprintf( L"Patcher [%s]: Copyright (c) 2025 Krinkels [krinkels.org]\r\n", version.c_str() );
 //////////////////////////////////////////////////////////////////////////
-		
+	
+	/*try
+	{
+		checkfile();
+	}
+	catch( const std::runtime_error& e )
+	{
+		MessageBox( NULL, ( AnsiToUnicode( e.what() ) ).c_str(), L"checkfile:runtime_error", MB_OK | MB_ICONERROR );
+		return 0; // Если не можем переименовать файл, то и пропатчить не сможем, нет смысла продолжать
+	}
+	return 0;*/
+
 	Options Opt;
 	if( Opt.get_arguments( argc, argv ) == false )
 		return 0;
@@ -55,7 +63,7 @@ int main( int argc, char* argv[] )
 			MessageBox( nullptr, L"Неизвестная ошибка curl.\nДля отключения автоматической проверки новых версий\nзапустите программу с параметром \"-nocheck\"", L"Ошибка обновления", MB_ICONERROR );
 		}
 	}
-					
+							
 	md5_check = Opt.md5_check;
 	print_console = Opt.print_console;
 	mem_size = Opt.mem_size;
@@ -124,7 +132,7 @@ int main( int argc, char* argv[] )
 	//////////////////////////////////////////////////////////////
 	// Проверим версию файла
 	std::wstring versionexe = GetFileVersion( GamePath + L"\\EscapeFromTarkov.exe" );
-
+		
 	wprintf( L"Обнаружена версии Таркова: %s\n", versionexe.c_str() );
 
 	std::wstring PatchFrom = ExtractVersion( std::filesystem::path( PatchFile ).filename().wstring() );
@@ -252,6 +260,27 @@ int main( int argc, char* argv[] )
 		wprintf( L"Ошибка выделения памяти через VirtualAlloc. Errorcode: %d\n", GetLastError() );
 		return 0;
 	}
+		
+	// Нужно исключить из обработки 
+	// EscapeFromTarkov_Data\Plugins\x86_64\hwecho.dll
+	// Ищем
+
+	wprintf( L"Попытаемся найти hwecho.dll.patch\n" );
+	auto it = std::find_if( mPatchList.begin(), mPatchList.end(), []( const std::wstring& file )
+	{
+		return std::filesystem::path( file ).filename() == L"hwecho.dll.patch";
+	} );
+
+	// Если элемент найден, то удаляем его
+	if( it != mPatchList.end() )
+	{
+		wprintf( L"Найден, удалим его\n" );
+		mPatchList.erase( it );
+	}
+	else
+	{
+		wprintf( L"Файл не найден\n" );
+	}
 
 	AllFiles = mPatchList.size();
 
@@ -319,7 +348,7 @@ int main( int argc, char* argv[] )
 			// Ошибки не случилось, можно работать с файлом дальше
 			// Удалим значение из вектора
 			mPatchList.erase( it );
-		}		
+		}
 	}
 		
 	for( auto sData : mPatchList )
@@ -412,6 +441,7 @@ int main( int argc, char* argv[] )
 				}
 			}
 
+			wprintf( L"----------------------------------------------------\n" );
 			wprintf( L"Скопирован файл [%d/%d]: %s\n", FilesProcessed++, AllFiles, relativePath.c_str() );
 		}
 	}
@@ -445,7 +475,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	size_t WriteData = 0, readData = 0;
 	uint32_t progressPercentage = 0;
 	uint32_t percent = 0;
-		
+
 	// Получим относительный путь к файлу с патчем
 	std::filesystem::path relativePath = std::filesystem::relative( fPatch, TmpPath );
 
@@ -453,6 +483,7 @@ bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatc
 	std::filesystem::path OriginalFile = relativePath;
 	OriginalFile.replace_extension();
 
+	wprintf( L"----------------------------------------------------\n" );
 	wprintf ( L"Обработка файла [%d/%d]: %s\n", FilesProcessed++, AllFiles, OriginalFile.wstring ().c_str () );
 
 	uint64_t filesize = std::filesystem::file_size( wstring_to_string( fPatch ).c_str() );

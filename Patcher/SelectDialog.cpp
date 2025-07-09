@@ -1,8 +1,4 @@
-﻿/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
-#include "SelectDialog.h"
+﻿#include "SelectDialog.h"
 #include <stdexcept>
 #include <atlbase.h>
 
@@ -273,7 +269,7 @@ IFACEMETHODIMP SelectDialog::OnSelectionChange( IFileDialog *pfd )
 		}
 		else
 		{
-			pfd->SetOkButtonLabel( L"Сохранить" );
+			pfd->SetOkButtonLabel( L"Открыть" );
 		}
 		//pfd->SetOkButtonLabel( L"Открыть" );
 	}

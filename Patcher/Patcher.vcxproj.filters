@@ -63,6 +63,9 @@
     <ClCompile Include="filewripper.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="CheckGameFile.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64_decode.h">
@@ -147,6 +150,9 @@
       <Filter>nlohmann\nlohmann</Filter>
     </ClInclude>
     <ClInclude Include="filewripper.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="CheckGameFile.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

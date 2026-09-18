@@ -12,6 +12,7 @@
 #include "BinaryFormat.h"
 #include "filewripper.h"
 #include "CheckGameFile.h"
+#include "BSDIFF.h"
 
 #pragma comment(lib, "version.lib" )
 //#pragma warning(disable : 4996)
@@ -24,7 +25,7 @@ uint32_t print_console;			// Вывод информации в консоль
 
 uint32_t mem_size;				// Память под буфер для копирования файлов
 
-bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, uint32_t memBufSize, DWORD MD5Check );
+bool ApplyPatch_FRS( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, uint32_t memBufSize, DWORD MD5Check );
 void FreeAllMem( char **memBuf );
 
 int main( int argc, char* argv[] )
@@ -98,12 +99,13 @@ int main( int argc, char* argv[] )
 	}
 
 	// Теперь проверим Assembly-CSharp.dll, а то мало ли
-	if( std::filesystem::exists( GamePath + L"\\EscapeFromTarkov_Data\\Managed\\Assembly-CSharp.dll" ) == false )
+	// Теперь эта либа будет только в SPT
+	/*if( std::filesystem::exists( GamePath + L"\\EscapeFromTarkov_Data\\Managed\\Assembly-CSharp.dll" ) == false )
 	{
 		std::wstring Tmp = L"Файл Assembly-CSharp.dll не обнаружен по пути:\n" + GamePath + L"\\EscapeFromTarkov_Data\\Managed";
 		MessageBox( nullptr, Tmp.c_str(), L"Внимание", MB_ICONERROR );
 		return 0;
-	}
+	}*/
 	
 	// При сбое файл 123.tmp остаётся, лучше бы его удалить
 	std::wstring TmpFile = GamePath + L"\\123.tmp";
@@ -166,13 +168,8 @@ int main( int argc, char* argv[] )
 	}
 
 	// Найдём все файлы по маске "Assembly-CSharp*". Если больше двух то  это что то не то
-	std::vector<std::wstring> ACfiles = SearchFilesInDirectory( GamePath + L"\\EscapeFromTarkov_Data\\Managed", L"Assembly-CSharp" );
+	/*std::vector<std::wstring> ACfiles = SearchFilesInDirectory( GamePath + L"\\EscapeFromTarkov_Data\\Managed", L"Assembly-CSharp" );
 	
-	/*if( ACfiles.size() == 2 ) // Чистый клиент
-	{
-		
-	}
-	else*/
 	if( ACfiles.size() == 3 ) // Хоть раз игра с сервером запускалась
 	{
 		auto it = std::find_if( ACfiles.begin(), ACfiles.end(), []( const std::wstring& file )
@@ -220,7 +217,7 @@ int main( int argc, char* argv[] )
 		}
 		MessageBox( NULL, ( L"Файлов Assembly-CSharp* больше трёх, дальнейшая работа невозможна.\nНайдены файлы:\n" + result ).c_str(), L"!!!", MB_OK | MB_ICONERROR );
 		return 0;
-	}
+	}*/
 
 	TmpFolder fTmp;
 
@@ -288,7 +285,7 @@ int main( int argc, char* argv[] )
 
 	// В последнее время появляются какие то проблемы с Assembly-CSharp.dll
 	// По этому, если задана MD5_ACS, то первым делом проверим эту библиотечку
-	if( md5_check == MD5_ACS || md5_check == MD5_ALL )
+	/*if( md5_check == MD5_ACS || md5_check == MD5_ALL )
 	{		
 		// Ищем
 		auto it = std::find_if( mPatchList.begin(), mPatchList.end(), []( const std::wstring& file )
@@ -349,7 +346,7 @@ int main( int argc, char* argv[] )
 			// Удалим значение из вектора
 			mPatchList.erase( it );
 		}
-	}
+	}*/
 		
 	for( auto sData : mPatchList )
 	{
@@ -360,7 +357,50 @@ int main( int argc, char* argv[] )
 			// Список патчей
 			try
 			{
-				ApplyPatch( GamePath, fTmp.ReturnTempPath(), sData, memBuf, mem_size, md5_check );
+				// Получим относительный путь к файлу с патчем
+				std::filesystem::path relativePath = std::filesystem::relative( sData, fTmp.ReturnTempPath() );
+
+				// Оригинальный файл в папке с игрой
+				std::filesystem::path OriginalFile = relativePath;
+				OriginalFile.replace_extension();
+
+				// Проверяем наличие оригинального файла
+				// А то патч есть а файла может не быть
+				if( std::filesystem::exists( wstring_to_string( GamePath + L"\\" + OriginalFile.wstring() ).c_str() ) == false )
+				{
+					wprintf( L"----------------------------------------------------\n" );
+					wprintf( L"Файл не найден, пропускаем [%d/%d]: %s\n", FilesProcessed++, AllFiles, OriginalFile.wstring().c_str() );
+
+					continue;
+				}
+
+				//std::filesystem::exists( TmpFile )
+
+				// Теперь нужно проверить идентификатор
+				FILEWrapper Tmp( wstring_to_string( sData ).c_str(), false );
+
+				char header[ 10 ] = { 0 };
+				Tmp.readfile( header, 8, "Ошибка при чтении идентификатора в файле патча" );
+				Tmp.~FILEWrapper();
+
+				// В текущей версии есть особенность, файлы для патчинга есть, а самих файлов нет
+				// Клиент об это спотыкается
+
+
+				// В зависимости от, выбираем ту или иную функцию. Как бы ещё расширять не пришлось
+				// В ApplyPatch_* всё равно дублируется проверка, т.к. тут она не совсем полная, а усреднённая
+				if( lstrcmpA( header, "FRSNCDLT" ) == 0 )
+				{
+					ApplyPatch_FRS( GamePath, fTmp.ReturnTempPath(), sData, memBuf, mem_size, md5_check );
+				}
+				else
+				if( lstrcmpA( header, "BSDIFF40" ) == 0 )
+				{
+					ApplyPatch_BSD( GamePath, fTmp.ReturnTempPath(), sData, &FilesProcessed, &AllFiles );
+				}
+				else
+					throw std::runtime_error( "Неизвестный формат патча\n" + wstring_to_string( sData ) ); // Надеюсь не пригодится
+				
 			}
 			catch( const std::runtime_error& e )
 			{
@@ -459,14 +499,14 @@ void FreeAllMem( char **memBuf )
 	*memBuf = nullptr;
 }
 
-// Функция патчинга файлов
+// Функция патчинга файлов FRSNCDLTA
 // @param (std::filesystem::path) GamePath - Путь к папке с игрой
 // @param (std::filesystem::path) TmpPath - Путь к временной папке
-// @param (std::filesystem::path) sData - Путь к файлу с патчем
+// @param (std::filesystem::path) fPatch - Путь к файлу с патчем
 // @param (char *) memBuf - Общий буфер для работы с файлами
 // @param (uint32_t *) memBufSize - Размер выделенного буфера
 // @param (DWORD) MD5Check - Проверка файлов MD5 хэш суммой. Не проверять, часть или все
-bool ApplyPatch( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, uint32_t memBufSize, DWORD MD5Check )
+bool ApplyPatch_FRS( std::wstring GamePath, std::wstring TmpPath, std::wstring fPatch, char *memBuf, uint32_t memBufSize, DWORD MD5Check )
 {
 	uint64_t start;
 	uint64_t length;
